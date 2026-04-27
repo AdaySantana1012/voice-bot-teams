@@ -314,63 +314,6 @@
       30% { transform: translateY(-6px); }
     }
 
-    /* Config panel */
-    .config {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .config-title {
-      font-size: 11px;
-      font-family: 'DM Mono', monospace;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-    }
-
-    .config input {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 14px;
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .config input:focus {
-      border-color: var(--accent);
-    }
-
-    .config input::placeholder {
-      color: var(--muted);
-    }
-
-    .save-btn {
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 10px;
-      font-family: 'Syne', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 0.5px;
-      transition: all 0.2s;
-    }
-
-    .save-btn:active { transform: scale(0.97); opacity: 0.9; }
-
     .no-config {
       text-align: center;
       color: var(--muted);
@@ -416,11 +359,7 @@
       </div>
     </div>
 
-    <div class="config" id="configPanel">
-      <div class="config-title">⚙ Configuración del bot</div>
-      <input type="text" id="dlSecret" placeholder="Direct Line Secret Key" />
-      <button class="save-btn" onclick="saveConfig()">Guardar y conectar</button>
-    </div>
+
   </div>
 
   <script>
@@ -440,7 +379,9 @@
     let dlToken = null;
     let conversationId = null;
     let watermark = null;
-    let directLineSecret = localStorage.getItem('dl_secret') || '';
+    // Lee la key desde la URL (puesta en el manifest, no en el código)
+    const params = new URLSearchParams(window.location.search);
+    let directLineSecret = params.get('key') || '';
     let analyserInterval = null;
 
     // ---- Build visualizer bars ----
@@ -453,22 +394,12 @@
       vis.appendChild(bar);
     }
 
-    // Load saved config
+    // Inicia Direct Line automáticamente si hay key en la URL
     if (directLineSecret) {
-      document.getElementById('dlSecret').value = directLineSecret;
-      document.getElementById('configPanel').style.display = 'none';
       initDirectLine();
     } else {
-      document.getElementById('noConfigMsg').style.display = 'block';
-    }
-
-    function saveConfig() {
-      directLineSecret = document.getElementById('dlSecret').value.trim();
-      if (!directLineSecret) return;
-      localStorage.setItem('dl_secret', directLineSecret);
-      document.getElementById('configPanel').style.display = 'none';
-      document.getElementById('noConfigMsg').style.display = 'none';
-      initDirectLine();
+      setStatus('ready', 'Sin configuración');
+      addBotMessage('⚠️ No se encontró la clave de configuración.');
     }
 
     // ---- Direct Line ----
