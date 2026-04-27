@@ -83,7 +83,7 @@
           microsoftTeams.authentication.getAuthToken({
             resources: [`api://${APP_ID}`],
             successCallback: resolve,
-            failureCallback: reject
+            failureCallback: (err) => reject(new Error(typeof err === 'string' ? err : JSON.stringify(err)))
           });
         });
 
