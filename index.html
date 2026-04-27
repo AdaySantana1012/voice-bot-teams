@@ -40,13 +40,78 @@
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: bounce 1.2s infinite; }
     .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
     @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-    .input-row { display: flex; gap: 8px; width: 100%; }
-    .text-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+
+    /* === Audio bubble === */
+    .audio-bubble { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; min-width: 220px; }
+    .audio-bubble audio {
+      width: 100%; height: 32px;
+      filter: invert(1) hue-rotate(180deg);  /* invierte el player nativo para que case con dark mode */
+    }
+    .audio-bubble audio::-webkit-media-controls-panel { background: rgba(255,255,255,0.95); }
+    .audio-transcript {
+      font-size: 12px; line-height: 1.4; opacity: 0.85;
+      font-style: italic; padding: 0 4px;
+    }
+    .audio-transcript.loading { opacity: 0.5; }
+
+    /* === Input row === */
+    .input-row {
+      display: flex; gap: 8px; width: 100%; align-items: center;
+    }
+    .input-wrap {
+      flex: 1; position: relative; display: flex; align-items: center;
+    }
+    .text-input {
+      flex: 1; width: 100%;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 48px 12px 16px;
+      color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px;
+      outline: none; transition: border-color 0.2s;
+    }
     .text-input:focus { border-color: var(--accent); }
     .text-input::placeholder { color: var(--muted); }
-    .send-btn { background: var(--accent); color: white; border: none; border-radius: 12px; padding: 12px 20px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .text-input:disabled { opacity: 0.5; }
+
+    .mic-btn {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px;
+      background: transparent; border: none; border-radius: 10px;
+      color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .mic-btn:hover { background: rgba(124, 106, 247, 0.12); }
+    .mic-btn:active { transform: translateY(-50%) scale(0.92); }
+    .mic-btn svg { width: 20px; height: 20px; }
+
+    .mic-btn.recording {
+      background: var(--recording); color: white;
+      animation: rec-pulse 1.2s infinite;
+    }
+    @keyframes rec-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+      50% { box-shadow: 0 0 0 8px rgba(255, 71, 87, 0); }
+    }
+
+    .send-btn {
+      background: var(--accent); color: white; border: none; border-radius: 12px;
+      padding: 12px 20px; font-family: 'Syne', sans-serif; font-size: 14px;
+      font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
     .send-btn:active { transform: scale(0.95); opacity: 0.9; }
     .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .rec-indicator {
+      display: none; align-items: center; gap: 6px;
+      font-family: 'DM Mono', monospace; font-size: 11px; color: var(--recording);
+      padding: 0 4px;
+    }
+    .rec-indicator.active { display: flex; }
+    .rec-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--recording);
+      animation: pulse 1s infinite;
+    }
+
     .debug { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.6; word-break: break-all; }
     .debug span { color: var(--text); }
   </style>
@@ -59,10 +124,28 @@
       <span id="statusText">Iniciando...</span>
     </div>
     <div class="chat" id="chat"></div>
-    <div class="input-row">
-      <input class="text-input" id="textInput" type="text" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter') sendMessage()" />
-      <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>Enviar</button>
+
+    <div class="rec-indicator" id="recIndicator">
+      <div class="rec-dot"></div>
+      <span id="recTime">00:00</span>
+      <span style="color: var(--muted); margin-left: 6px;">Pulsa el micro de nuevo para enviar</span>
     </div>
+
+    <div class="input-row">
+      <div class="input-wrap">
+        <input class="text-input" id="textInput" type="text" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter') sendTextMessage()" />
+        <button class="mic-btn" id="micBtn" onclick="toggleRecording()" disabled aria-label="Grabar audio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="sendTextMessage()" disabled>Enviar</button>
+    </div>
+
     <div class="debug">
       sso: <span id="dbSSO">-</span><br>
       user: <span id="dbUser">-</span><br>
@@ -76,7 +159,9 @@
     const APP_ID = '4a693834-2aa8-478e-a086-98d7de9ade7e';
     const APP_DOMAIN = 'adaysantana1012.github.io';
     const RESOURCE = `api://${APP_DOMAIN}/${APP_ID}`;
-    const PROXY_URL = 'https://voicebot-proxy.azurewebsites.net/api/token';
+    const PROXY_BASE = 'https://voicebot-proxy.azurewebsites.net/api';
+    const TOKEN_URL = `${PROXY_BASE}/token`;
+    const TRANSCRIBE_URL = `${PROXY_BASE}/transcribe`;
     const DIRECTLINE_BASE = 'https://europe.directline.botframework.com/v3/directline';
 
     // ====== STATE ======
@@ -86,6 +171,13 @@
     let watermark = null;
     let userId = null;
     let dlUserId = null;
+
+    // Recording state
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingStream = null;
+    let recordStart = 0;
+    let recordTimer = null;
 
     async function init() {
       try {
@@ -110,18 +202,16 @@
         } catch (_) {}
 
         setStatus('thinking', 'Generando token Direct Line...');
-        const tokenRes = await fetch(PROXY_URL, {
+        const tokenRes = await fetch(TOKEN_URL, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${ssoToken}` }
         });
-
         if (!tokenRes.ok) {
           const err = await tokenRes.text();
           setStatus('error', `Error token: ${tokenRes.status}`);
           addBotMessage(`⚠️ Error generando token (${tokenRes.status}): ${err}`);
           return;
         }
-
         const tokenData = await tokenRes.json();
         dlToken = tokenData.token;
         document.getElementById('dbToken').textContent = dlToken.substring(0, 20) + '...';
@@ -131,21 +221,20 @@
           method: 'POST',
           headers: { 'Authorization': `Bearer ${dlToken}` }
         });
-
         if (!convRes.ok) {
           const err = await convRes.text();
           setStatus('error', `Error conversación: ${convRes.status}`);
           addBotMessage(`⚠️ Error iniciando conversación (${convRes.status}): ${err}`);
           return;
         }
-
         const convData = await convRes.json();
         conversationId = convData.conversationId;
         document.getElementById('dbConv').textContent = conversationId;
 
         setStatus('ok', 'Conectado ✓');
         document.getElementById('sendBtn').disabled = false;
-        addBotMessage('✅ Listo. Escribe algo para hablar con el bot.');
+        document.getElementById('micBtn').disabled = false;
+        addBotMessage('✅ Listo. Escribe un mensaje o pulsa el micro para grabar.');
 
       } catch (e) {
         setStatus('error', 'Error: ' + e.message);
@@ -153,14 +242,122 @@
       }
     }
 
-    async function sendMessage() {
+    // ====== TEXT ======
+    async function sendTextMessage() {
       const input = document.getElementById('textInput');
       const text = input.value.trim();
       if (!text || !conversationId) return;
       input.value = '';
-      document.getElementById('sendBtn').disabled = true;
-      addUserMessage(text);
+      addUserTextMessage(text);
+      await sendToBot(text);
+    }
 
+    // ====== AUDIO ======
+    async function toggleRecording() {
+      if (!conversationId) return;
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopRecording();
+      } else {
+        await startRecording();
+      }
+    }
+
+    async function startRecording() {
+      try {
+        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Elige el mejor mime soportado
+        const candidates = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/ogg;codecs=opus'
+        ];
+        const mimeType = candidates.find(t => MediaRecorder.isTypeSupported(t)) || '';
+
+        mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
+        audioChunks = [];
+
+        mediaRecorder.addEventListener('dataavailable', e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        });
+
+        mediaRecorder.addEventListener('stop', async () => {
+          const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          recordingStream.getTracks().forEach(t => t.stop());
+          recordingStream = null;
+          await handleAudioBlob(blob);
+        });
+
+        mediaRecorder.start();
+        recordStart = Date.now();
+        document.getElementById('micBtn').classList.add('recording');
+        document.getElementById('recIndicator').classList.add('active');
+        document.getElementById('textInput').disabled = true;
+        document.getElementById('sendBtn').disabled = true;
+        recordTimer = setInterval(() => {
+          const s = Math.floor((Date.now() - recordStart) / 1000);
+          const mm = String(Math.floor(s / 60)).padStart(2, '0');
+          const ss = String(s % 60).padStart(2, '0');
+          document.getElementById('recTime').textContent = `${mm}:${ss}`;
+        }, 250);
+      } catch (e) {
+        addBotMessage('⚠️ No se pudo acceder al micrófono: ' + e.message);
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      clearInterval(recordTimer);
+      document.getElementById('micBtn').classList.remove('recording');
+      document.getElementById('recIndicator').classList.remove('active');
+      document.getElementById('textInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('recTime').textContent = '00:00';
+    }
+
+    async function handleAudioBlob(blob) {
+      // 1) Pinta la burbuja con el reproductor y el "transcribiendo..."
+      const audioUrl = URL.createObjectURL(blob);
+      const transcriptEl = addUserAudioMessage(audioUrl);
+
+      // 2) Manda el blob a la function para transcribir
+      try {
+        const form = new FormData();
+        form.append('audio', blob, 'recording.webm');
+
+        const res = await fetch(TRANSCRIBE_URL, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${ssoToken}` },
+          body: form
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          transcriptEl.classList.remove('loading');
+          transcriptEl.textContent = '⚠️ Error transcribiendo: ' + errText;
+          return;
+        }
+
+        const data = await res.json();
+        const text = (data.text || '').trim();
+        transcriptEl.classList.remove('loading');
+        transcriptEl.textContent = text || '(no se detectó voz)';
+
+        // 3) Si hay texto, lo manda al agente como un mensaje normal
+        if (text) {
+          await sendToBot(text);
+        }
+      } catch (e) {
+        transcriptEl.classList.remove('loading');
+        transcriptEl.textContent = '⚠️ Error: ' + e.message;
+      }
+    }
+
+    // ====== Direct Line ======
+    async function sendToBot(text) {
       try {
         await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
           method: 'POST',
@@ -178,7 +375,6 @@
       } catch (e) {
         addBotMessage('⚠️ Error enviando: ' + e.message);
       }
-      document.getElementById('sendBtn').disabled = false;
     }
 
     async function pollReply() {
@@ -192,7 +388,6 @@
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
           const data = await res.json();
           watermark = data.watermark;
-          // Filtra: solo mensajes que NO sean nuestros (ni con userId, ni con dl_<userId>, ni con 'user1' antiguo)
           const botMsgs = (data.activities || []).filter(a =>
             a.type === 'message' &&
             a.from &&
@@ -212,17 +407,32 @@
       setStatus('ok', 'Sin respuesta del bot');
     }
 
+    // ====== UI helpers ======
     function setStatus(type, text) {
       document.getElementById('statusBar').className = 'status-bar ' + type;
       document.getElementById('statusText').textContent = text;
     }
-    function addUserMessage(text) {
+    function addUserTextMessage(text) {
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
       msg.className = 'msg user';
       msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble"></div>`;
       msg.querySelector('.msg-bubble').textContent = text;
       chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
+    }
+    function addUserAudioMessage(audioUrl) {
+      const chat = document.getElementById('chat');
+      const msg = document.createElement('div');
+      msg.className = 'msg user';
+      msg.innerHTML = `
+        <div class="msg-label">Tú</div>
+        <div class="msg-bubble audio-bubble">
+          <audio controls src="${audioUrl}"></audio>
+          <div class="audio-transcript loading">Transcribiendo...</div>
+        </div>
+      `;
+      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
+      return msg.querySelector('.audio-transcript');
     }
     function addBotMessage(text) {
       const chat = document.getElementById('chat');
