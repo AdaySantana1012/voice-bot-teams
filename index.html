@@ -228,7 +228,7 @@
         document.getElementById('dbToken').textContent = dlToken ? dlToken.substring(0, 12) + '...' : 'null';
 
         setStatus('thinking', 'Iniciando conversación...');
-        const convRes = await fetch('https://directline.botframework.com/v3/directline/conversations', {
+        const convRes = await fetch('https://europe.directline.botframework.com/v3/directline/conversations', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${dlToken}` }
         });
@@ -264,7 +264,7 @@
       addUserMessage(text);
 
       try {
-        await fetch(`https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
+        await fetch(`https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${dlToken}`,
@@ -291,7 +291,7 @@
       for (let i = 0; i < 12; i++) {
         await sleep(1500);
         try {
-          const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities` +
+          const url = `https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities` +
             (watermark ? `?watermark=${watermark}` : '');
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
           const data = await res.json();
