@@ -3,219 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Voice Bot - Test</title>
+  <title>Voice Bot</title>
   <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0a0a0f;
-      --surface: #13131a;
-      --border: #1e1e2e;
-      --accent: #7c6af7;
-      --text: #e8e8f0;
-      --muted: #5a5a7a;
-      --recording: #ff4757;
+      --bg: #0a0a0f; --surface: #13131a; --border: #1e1e2e;
+      --accent: #7c6af7; --text: #e8e8f0; --muted: #5a5a7a; --recording: #ff4757;
     }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 24px 16px;
-      gap: 16px;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 60% 40% at 20% 20%, #7c6af715 0%, transparent 60%),
-        radial-gradient(ellipse 50% 50% at 80% 80%, #f76a8f10 0%, transparent 60%);
-      pointer-events: none;
-    }
-
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 24px 16px; gap: 16px; }
+    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 60% 40% at 20% 20%, #7c6af715 0%, transparent 60%), radial-gradient(ellipse 50% 50% at 80% 80%, #f76a8f10 0%, transparent 60%); pointer-events: none; }
     .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 1; }
-
-    h1 {
-      font-size: 22px;
-      font-weight: 800;
-      background: linear-gradient(135deg, var(--text) 40%, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .status-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      color: var(--muted);
-      transition: all 0.3s;
-    }
-
-    .status-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--muted);
-      transition: all 0.3s;
-    }
-
+    h1 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, var(--text) 40%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .status-bar { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 8px 16px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); transition: all 0.3s; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: all 0.3s; }
     .status-bar.ok .status-dot { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
     .status-bar.ok { border-color: #4ade80; color: var(--text); }
     .status-bar.thinking .status-dot { background: var(--accent); animation: pulse 1s infinite; }
     .status-bar.error .status-dot { background: var(--recording); }
     .status-bar.error { border-color: var(--recording); color: var(--text); }
-
     @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-
-    .chat {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      height: 340px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
+    .chat { width: 100%; display: flex; flex-direction: column; gap: 10px; height: 380px; overflow-y: auto; padding-right: 4px; }
     .chat::-webkit-scrollbar { width: 3px; }
     .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
     .msg { display: flex; flex-direction: column; gap: 3px; animation: slide-in 0.3s ease; }
     @keyframes slide-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-
     .msg.user { align-items: flex-end; }
     .msg.bot { align-items: flex-start; }
-
     .msg-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-
-    .msg-bubble {
-      max-width: 85%;
-      padding: 10px 14px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
+    .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
     .msg.user .msg-bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
     .msg.bot .msg-bubble { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
-
     .thinking-bubble { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: bounce 1.2s infinite; }
     .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
     @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-
-    .input-row {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-    }
-
-    .text-input {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 16px;
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
+    .input-row { display: flex; gap: 8px; width: 100%; }
+    .text-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
     .text-input:focus { border-color: var(--accent); }
     .text-input::placeholder { color: var(--muted); }
-
-    .send-btn {
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 12px 20px;
-      font-family: 'Syne', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
+    .send-btn { background: var(--accent); color: white; border: none; border-radius: 12px; padding: 12px 20px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .send-btn:active { transform: scale(0.95); opacity: 0.9; }
     .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .debug {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
+    .debug { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.6; }
     .debug span { color: var(--text); }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>Voice Bot · Test</h1>
-
+    <h1>Voice Bot</h1>
     <div class="status-bar" id="statusBar">
       <div class="status-dot"></div>
-      <span id="statusText">Conectando...</span>
+      <span id="statusText">Iniciando SSO...</span>
     </div>
-
     <div class="chat" id="chat"></div>
-
     <div class="input-row">
       <input class="text-input" id="textInput" type="text" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter') sendMessage()" />
       <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>Enviar</button>
     </div>
-
-    <div class="debug" id="debug">
-      key: <span id="dbKey">-</span><br>
+    <div class="debug">
+      sso: <span id="dbSSO">-</span><br>
       conversationId: <span id="dbConv">-</span><br>
       token: <span id="dbToken">-</span>
     </div>
   </div>
-
   <script>
-    microsoftTeams.app.initialize().catch(() => {});
-
+    const APP_ID = '1234';
     const PROXY_URL = 'https://voicebot-proxy.azurewebsites.net/api/token';
-
-    let dlToken = null;
-    let conversationId = null;
-    let watermark = null;
-
-    // Debug panel
-    document.getElementById('dbKey').textContent = 'via proxy ✓';
+    let dlToken = null, conversationId = null, watermark = null;
 
     async function init() {
       try {
-        setStatus('thinking', 'Generando token...');
-        const tokenRes = await fetch(PROXY_URL);
+        await microsoftTeams.app.initialize();
+        setStatus('thinking', 'Obteniendo token SSO...');
 
+        const ssoToken = await new Promise((resolve, reject) => {
+          microsoftTeams.authentication.getAuthToken({
+            resources: [`api://${APP_ID}`],
+            successCallback: resolve,
+            failureCallback: reject
+          });
+        });
+
+        document.getElementById('dbSSO').textContent = ssoToken ? ssoToken.substring(0, 12) + '...' : 'null';
+        setStatus('thinking', 'Generando token Direct Line...');
+
+        const tokenRes = await fetch(PROXY_URL);
         if (!tokenRes.ok) {
           const err = await tokenRes.text();
           setStatus('error', `Error token: ${tokenRes.status}`);
@@ -244,13 +119,25 @@
         conversationId = convData.conversationId;
         document.getElementById('dbConv').textContent = conversationId;
 
+        // Envía el token SSO al bot
+        await fetch(`https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'invoke',
+            name: 'signin/tokenExchange',
+            from: { id: 'user1', name: 'Usuario' },
+            value: { id: '1', connectionName: 'VoiceBotSSO', token: ssoToken }
+          })
+        });
+
         setStatus('ok', 'Conectado ✓');
         document.getElementById('sendBtn').disabled = false;
-        addBotMessage('✅ Conectado. Escribe algo para probar el bot.');
+        addBotMessage('✅ Autenticado. Escribe algo para probar el bot.');
 
       } catch (e) {
-        setStatus('error', 'Error de red');
-        addBotMessage('⚠️ Error de red: ' + e.message);
+        setStatus('error', 'Error SSO: ' + e.message);
+        addBotMessage('⚠️ Error SSO: ' + e.message);
       }
     }
 
@@ -260,34 +147,23 @@
       if (!text || !conversationId) return;
       input.value = '';
       document.getElementById('sendBtn').disabled = true;
-
       addUserMessage(text);
-
       try {
         await fetch(`https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${dlToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'message',
-            from: { id: 'user1', name: 'Usuario' },
-            text: text
-          })
+          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'message', from: { id: 'user1', name: 'Usuario' }, text: text })
         });
         await pollReply();
       } catch(e) {
         addBotMessage('⚠️ Error enviando: ' + e.message);
       }
-
       document.getElementById('sendBtn').disabled = false;
     }
 
     async function pollReply() {
       setStatus('thinking', 'Esperando respuesta...');
       showThinking();
-
       for (let i = 0; i < 12; i++) {
         await sleep(1500);
         try {
@@ -310,43 +186,31 @@
     }
 
     function setStatus(type, text) {
-      const bar = document.getElementById('statusBar');
-      bar.className = 'status-bar ' + type;
+      document.getElementById('statusBar').className = 'status-bar ' + type;
       document.getElementById('statusText').textContent = text;
     }
-
     function addUserMessage(text) {
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
       msg.className = 'msg user';
       msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble">${text}</div>`;
-      chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight;
+      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
     }
-
     function addBotMessage(text) {
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
       msg.className = 'msg bot';
-      msg.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble">${text}</div>`;
-      chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight;
+      msg.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble">${text || '...'}</div>`;
+      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
     }
-
     function showThinking() {
       const chat = document.getElementById('chat');
       const t = document.createElement('div');
       t.className = 'msg bot'; t.id = 'thinking';
       t.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble thinking-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
-      chat.appendChild(t);
-      chat.scrollTop = chat.scrollHeight;
+      chat.appendChild(t); chat.scrollTop = chat.scrollHeight;
     }
-
-    function hideThinking() {
-      const t = document.getElementById('thinking');
-      if (t) t.remove();
-    }
-
+    function hideThinking() { const t = document.getElementById('thinking'); if (t) t.remove(); }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     init();
