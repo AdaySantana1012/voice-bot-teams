@@ -47,7 +47,7 @@
     .send-btn { background: var(--accent); color: white; border: none; border-radius: 12px; padding: 12px 20px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
     .send-btn:active { transform: scale(0.95); opacity: 0.9; }
     .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .debug { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .debug { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.6; word-break: break-all; }
     .debug span { color: var(--text); }
   </style>
 </head>
@@ -56,7 +56,7 @@
     <h1>Voice Bot</h1>
     <div class="status-bar" id="statusBar">
       <div class="status-dot"></div>
-      <span id="statusText">Iniciando SSO...</span>
+      <span id="statusText">Iniciando...</span>
     </div>
     <div class="chat" id="chat"></div>
     <div class="input-row">
@@ -65,32 +65,53 @@
     </div>
     <div class="debug">
       sso: <span id="dbSSO">-</span><br>
+      user: <span id="dbUser">-</span><br>
       conversationId: <span id="dbConv">-</span><br>
-      token: <span id="dbToken">-</span>
+      dlToken: <span id="dbToken">-</span>
     </div>
   </div>
   <script>
+    // ====== CONFIG ======
     const APP_ID = '4a693834-2aa8-478e-a086-98d7de9ade7e';
     const PROXY_URL = 'https://voicebot-proxy.azurewebsites.net/api/token';
-    let dlToken = null, conversationId = null, watermark = null;
+    const DIRECTLINE_BASE = 'https://europe.directline.botframework.com/v3/directline';
+
+    // ====== STATE ======
+    let ssoToken = null;
+    let dlToken = null;
+    let conversationId = null;
+    let watermark = null;
+    let userId = null;
 
     async function init() {
       try {
         await microsoftTeams.app.initialize();
         setStatus('thinking', 'Obteniendo token SSO...');
 
-        const ssoToken = await new Promise((resolve, reject) => {
+        // 1) SSO token de Teams (audience = tu App ID URI)
+        ssoToken = await new Promise((resolve, reject) => {
           microsoftTeams.authentication.getAuthToken({
-            resources: [`api://adaysantana1012.github.io/${APP_ID}`],
+            resources: [`api://${APP_ID}`],
             successCallback: resolve,
             failureCallback: (err) => reject(new Error(typeof err === 'string' ? err : JSON.stringify(err)))
           });
         });
+        document.getElementById('dbSSO').textContent = ssoToken.substring(0, 20) + '...';
 
-        document.getElementById('dbSSO').textContent = ssoToken ? ssoToken.substring(0, 12) + '...' : 'null';
+        // Decodifica el JWT (sin verificar firma, solo para mostrar quién es)
+        try {
+          const payload = JSON.parse(atob(ssoToken.split('.')[1]));
+          userId = payload.oid || payload.sub;
+          document.getElementById('dbUser').textContent = (payload.preferred_username || payload.upn || userId || 'unknown');
+        } catch (_) {}
+
+        // 2) Pide token de Direct Line a tu Function App, mandando el SSO en el header
         setStatus('thinking', 'Generando token Direct Line...');
+        const tokenRes = await fetch(PROXY_URL, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${ssoToken}` }
+        });
 
-        const tokenRes = await fetch(PROXY_URL);
         if (!tokenRes.ok) {
           const err = await tokenRes.text();
           setStatus('error', `Error token: ${tokenRes.status}`);
@@ -100,10 +121,11 @@
 
         const tokenData = await tokenRes.json();
         dlToken = tokenData.token;
-        document.getElementById('dbToken').textContent = dlToken ? dlToken.substring(0, 12) + '...' : 'null';
+        document.getElementById('dbToken').textContent = dlToken.substring(0, 20) + '...';
 
+        // 3) Inicia conversación en Direct Line
         setStatus('thinking', 'Iniciando conversación...');
-        const convRes = await fetch('https://europe.directline.botframework.com/v3/directline/conversations', {
+        const convRes = await fetch(`${DIRECTLINE_BASE}/conversations`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${dlToken}` }
         });
@@ -119,25 +141,13 @@
         conversationId = convData.conversationId;
         document.getElementById('dbConv').textContent = conversationId;
 
-        // Envía el token SSO al bot
-        await fetch(`https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'invoke',
-            name: 'signin/tokenExchange',
-            from: { id: 'user1', name: 'Usuario' },
-            value: { id: '1', connectionName: 'VoiceBotSSO', token: ssoToken }
-          })
-        });
-
         setStatus('ok', 'Conectado ✓');
         document.getElementById('sendBtn').disabled = false;
-        addBotMessage('✅ Autenticado. Escribe algo para probar el bot.');
+        addBotMessage('✅ Listo. Escribe algo para hablar con el bot.');
 
       } catch (e) {
-        setStatus('error', 'Error SSO: ' + e.message);
-        addBotMessage('⚠️ Error SSO: ' + e.message);
+        setStatus('error', 'Error: ' + e.message);
+        addBotMessage('⚠️ Error: ' + e.message);
       }
     }
 
@@ -148,14 +158,22 @@
       input.value = '';
       document.getElementById('sendBtn').disabled = true;
       addUserMessage(text);
+
       try {
-        await fetch(`https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
+        await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'message', from: { id: 'user1', name: 'Usuario' }, text: text })
+          headers: {
+            'Authorization': `Bearer ${dlToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'message',
+            from: { id: userId || 'user1', name: 'Usuario' },
+            text: text
+          })
         });
         await pollReply();
-      } catch(e) {
+      } catch (e) {
         addBotMessage('⚠️ Error enviando: ' + e.message);
       }
       document.getElementById('sendBtn').disabled = false;
@@ -164,15 +182,18 @@
     async function pollReply() {
       setStatus('thinking', 'Esperando respuesta...');
       showThinking();
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 20; i++) {
         await sleep(1500);
         try {
-          const url = `https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities` +
+          const url = `${DIRECTLINE_BASE}/conversations/${conversationId}/activities` +
             (watermark ? `?watermark=${watermark}` : '');
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
           const data = await res.json();
           watermark = data.watermark;
-          const botMsgs = (data.activities || []).filter(a => a.from.id !== 'user1' && a.type === 'message');
+          // Cualquier mensaje que no venga del propio usuario
+          const botMsgs = (data.activities || []).filter(a =>
+            a.type === 'message' && a.from && a.from.id !== (userId || 'user1')
+          );
           if (botMsgs.length > 0) {
             hideThinking();
             botMsgs.forEach(m => addBotMessage(m.text));
@@ -193,14 +214,16 @@
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
       msg.className = 'msg user';
-      msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble">${text}</div>`;
+      msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble"></div>`;
+      msg.querySelector('.msg-bubble').textContent = text;
       chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
     }
     function addBotMessage(text) {
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
       msg.className = 'msg bot';
-      msg.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble">${text || '...'}</div>`;
+      msg.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble"></div>`;
+      msg.querySelector('.msg-bubble').textContent = text || '...';
       chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
     }
     function showThinking() {
