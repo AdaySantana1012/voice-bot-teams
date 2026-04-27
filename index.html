@@ -73,6 +73,8 @@
   <script>
     // ====== CONFIG ======
     const APP_ID = '4a693834-2aa8-478e-a086-98d7de9ade7e';
+    const APP_DOMAIN = 'adaysantana1012.github.io';
+    const RESOURCE = `api://${APP_DOMAIN}/${APP_ID}`;
     const PROXY_URL = 'https://voicebot-proxy.azurewebsites.net/api/token';
     const DIRECTLINE_BASE = 'https://europe.directline.botframework.com/v3/directline';
 
@@ -88,10 +90,10 @@
         await microsoftTeams.app.initialize();
         setStatus('thinking', 'Obteniendo token SSO...');
 
-        // 1) SSO token de Teams (audience = tu App ID URI)
+        // 1) SSO token de Teams (audience = el RESOURCE del manifest)
         ssoToken = await new Promise((resolve, reject) => {
           microsoftTeams.authentication.getAuthToken({
-            resources: [`api://${APP_ID}`],
+            resources: [RESOURCE],
             successCallback: resolve,
             failureCallback: (err) => reject(new Error(typeof err === 'string' ? err : JSON.stringify(err)))
           });
@@ -190,7 +192,6 @@
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
           const data = await res.json();
           watermark = data.watermark;
-          // Cualquier mensaje que no venga del propio usuario
           const botMsgs = (data.activities || []).filter(a =>
             a.type === 'message' && a.from && a.from.id !== (userId || 'user1')
           );
