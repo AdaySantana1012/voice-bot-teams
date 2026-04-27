@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Voice Bot</title>
+  <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #1e1e2e;
+      --accent: #7c6af7;
+      --accent-glow: #7c6af755;
+      --accent2: #f76a8f;
+      --text: #e8e8f0;
+      --muted: #5a5a7a;
+      --success: #4ade80;
+      --danger: #f76a8f;
+      --recording: #ff4757;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+    }
+
+    /* Ambient background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 20%, #7c6af715 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, #f76a8f10 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--text) 40%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* Status */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      transition: all 0.3s;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all 0.3s;
+    }
+
+    .status-bar.recording .status-dot {
+      background: var(--recording);
+      box-shadow: 0 0 8px var(--recording);
+      animation: pulse-dot 1s infinite;
+    }
+
+    .status-bar.recording {
+      border-color: var(--recording);
+      color: var(--text);
+    }
+
+    .status-bar.thinking .status-dot {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse-dot 1.5s infinite;
+    }
+
+    .status-bar.thinking {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* Waveform visualizer */
+    .visualizer-wrap {
+      width: 100%;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .bar {
+      width: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      height: 4px;
+      transition: height 0.1s ease, background 0.3s;
+    }
+
+    .visualizer-wrap.active .bar {
+      background: var(--accent);
+    }
+
+    /* Record button */
+    .record-btn-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ripple {
+      position: absolute;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 2px solid var(--recording);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .ripple.active {
+      animation: ripple-out 1.5s infinite;
+    }
+
+    .ripple:nth-child(2) { animation-delay: 0.5s !important; }
+    .ripple:nth-child(3) { animation-delay: 1s !important; }
+
+    @keyframes ripple-out {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .record-btn {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      position: relative;
+      z-index: 1;
+    }
+
+    .record-btn:active {
+      transform: scale(0.94);
+    }
+
+    .record-btn.recording {
+      background: #1a0a0f;
+      border-color: var(--recording);
+      box-shadow: 0 0 30px #ff475720, 0 0 60px #ff475710;
+    }
+
+    .mic-icon {
+      width: 36px;
+      height: 36px;
+      transition: all 0.2s;
+    }
+
+    .record-btn.recording .mic-icon {
+      filter: drop-shadow(0 0 6px var(--recording));
+    }
+
+    .record-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+    }
+
+    /* Chat */
+    .chat {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .chat::-webkit-scrollbar { width: 3px; }
+    .chat::-webkit-scrollbar-track { background: transparent; }
+    .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      animation: slide-in 0.3s ease;
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.user { align-items: flex-end; }
+    .msg.bot { align-items: flex-start; }
+
+    .msg-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .msg-bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.bot .msg-bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .thinking-bubble {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 12px 16px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: bounce 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* Config panel */
+    .config {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .config-title {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .config input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .config input:focus {
+      border-color: var(--accent);
+    }
+
+    .config input::placeholder {
+      color: var(--muted);
+    }
+
+    .save-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+
+    .save-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+    .no-config {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>Voice Bot</h1>
+      <p>Habla con tu asistente</p>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <div class="status-dot"></div>
+      <span id="statusText">Listo para escuchar</span>
+    </div>
+
+    <div class="visualizer-wrap" id="visualizer"></div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div class="record-btn-wrap">
+        <div class="ripple" id="r1"></div>
+        <div class="ripple" id="r2"></div>
+        <div class="ripple" id="r3"></div>
+        <button class="record-btn" id="recordBtn" onclick="toggleRecord()">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 10a7 7 0 0 0 14 0"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+            <line x1="9" y1="21" x2="15" y2="21"/>
+          </svg>
+        </button>
+      </div>
+      <div class="record-hint" id="recordHint">mantén para hablar</div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="no-config" id="noConfigMsg" style="display:none">
+        ⚙️ Configura tu bot abajo para empezar
+      </div>
+    </div>
+
+    <div class="config" id="configPanel">
+      <div class="config-title">⚙ Configuración del bot</div>
+      <input type="text" id="dlSecret" placeholder="Direct Line Secret Key" />
+      <button class="save-btn" onclick="saveConfig()">Guardar y conectar</button>
+    </div>
+  </div>
+
+  <script>
+    // ---- Init Teams SDK ----
+    microsoftTeams.app.initialize().then(() => {
+      microsoftTeams.app.getContext().then(ctx => {
+        console.log("Teams context:", ctx);
+      });
+    }).catch(() => {
+      console.log("Running outside Teams - OK for testing");
+    });
+
+    // ---- State ----
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let dlToken = null;
+    let conversationId = null;
+    let watermark = null;
+    let directLineSecret = localStorage.getItem('dl_secret') || '';
+    let analyserInterval = null;
+
+    // ---- Build visualizer bars ----
+    const vis = document.getElementById('visualizer');
+    const NUM_BARS = 32;
+    for (let i = 0; i < NUM_BARS; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.height = '4px';
+      vis.appendChild(bar);
+    }
+
+    // Load saved config
+    if (directLineSecret) {
+      document.getElementById('dlSecret').value = directLineSecret;
+      document.getElementById('configPanel').style.display = 'none';
+      initDirectLine();
+    } else {
+      document.getElementById('noConfigMsg').style.display = 'block';
+    }
+
+    function saveConfig() {
+      directLineSecret = document.getElementById('dlSecret').value.trim();
+      if (!directLineSecret) return;
+      localStorage.setItem('dl_secret', directLineSecret);
+      document.getElementById('configPanel').style.display = 'none';
+      document.getElementById('noConfigMsg').style.display = 'none';
+      initDirectLine();
+    }
+
+    // ---- Direct Line ----
+    async function initDirectLine() {
+      try {
+        setStatus('connecting', 'Conectando...');
+        const res = await fetch('https://directline.botframework.com/v3/directline/tokens/generate', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${directLineSecret}` }
+        });
+        const data = await res.json();
+        dlToken = data.token;
+
+        const convRes = await fetch('https://directline.botframework.com/v3/directline/conversations', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${dlToken}` }
+        });
+        const convData = await convRes.json();
+        conversationId = convData.conversationId;
+        setStatus('ready', 'Listo para escuchar');
+        addBotMessage('¡Hola! Pulsa el micrófono y habla 🎙️');
+      } catch (e) {
+        setStatus('ready', 'Error de conexión');
+        addBotMessage('⚠️ No se pudo conectar al bot. Revisa tu Direct Line Secret.');
+      }
+    }
+
+    async function sendText(text) {
+      if (!conversationId) return;
+      await fetch(`https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${dlToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'message',
+          from: { id: 'user1', name: 'Usuario' },
+          text: text
+        })
+      });
+      await pollReply();
+    }
+
+    async function pollReply() {
+      setStatus('thinking', 'Pensando...');
+      showThinking();
+      const url = watermark
+        ? `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities?watermark=${watermark}`
+        : `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
+
+      for (let i = 0; i < 12; i++) {
+        await sleep(1500);
+        try {
+          const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
+          const data = await res.json();
+          watermark = data.watermark;
+          const botMsgs = (data.activities || []).filter(a => a.from.id !== 'user1' && a.type === 'message');
+          if (botMsgs.length > 0) {
+            hideThinking();
+            botMsgs.forEach(m => addBotMessage(m.text));
+            setStatus('ready', 'Listo para escuchar');
+            return;
+          }
+        } catch {}
+      }
+      hideThinking();
+      setStatus('ready', 'Sin respuesta');
+    }
+
+    // ---- Recording ----
+    async function toggleRecord() {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        await startRecording();
+      }
+    }
+
+    async function startRecording() {
+      try {
+        // Request mic — works natively on mobile Teams webview
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        isRecording = true;
+        audioChunks = [];
+
+        // Visualizer
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const bars = vis.querySelectorAll('.bar');
+        vis.classList.add('active');
+
+        analyserInterval = setInterval(() => {
+          analyser.getByteFrequencyData(dataArray);
+          bars.forEach((bar, i) => {
+            const val = dataArray[i] || 0;
+            const h = 4 + (val / 255) * 52;
+            bar.style.height = h + 'px';
+          });
+        }, 50);
+
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          clearInterval(analyserInterval);
+          vis.classList.remove('active');
+          vis.querySelectorAll('.bar').forEach(b => b.style.height = '4px');
+          stream.getTracks().forEach(t => t.stop());
+          await transcribeAndSend();
+        };
+
+        mediaRecorder.start();
+        setStatus('recording', 'Grabando...');
+        document.getElementById('recordBtn').classList.add('recording');
+        document.getElementById('r1').classList.add('active');
+        document.getElementById('r2').classList.add('active');
+        document.getElementById('r3').classList.add('active');
+        document.getElementById('recordHint').textContent = 'toca para detener';
+      } catch (e) {
+        alert('No se pudo acceder al micrófono. Verifica los permisos.');
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      isRecording = false;
+      document.getElementById('recordBtn').classList.remove('recording');
+      document.getElementById('r1').classList.remove('active');
+      document.getElementById('r2').classList.remove('active');
+      document.getElementById('r3').classList.remove('active');
+      document.getElementById('recordHint').textContent = 'mantén para hablar';
+      setStatus('thinking', 'Procesando audio...');
+    }
+
+    async function transcribeAndSend() {
+      // Use Web Speech API for transcription (no backend needed)
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+
+      // Try Web Speech API real-time (fallback to a simple approach)
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (SpeechRecognition) {
+        // Re-record using SpeechRecognition for transcription
+        // Since we already have audio, use a fresh recognition for the next attempt
+        // Instead, let's use the recognition API inline
+        setStatus('thinking', 'Transcribiendo...');
+        addUserMessage('[Audio enviado - transcribiendo...]');
+        // We'll switch to live recognition approach
+        recognizeAndSend();
+      } else {
+        addUserMessage('[Audio enviado]');
+        if (conversationId) {
+          await sendText('[El usuario envió un mensaje de voz]');
+        } else {
+          addBotMessage('⚙️ Configura el bot para recibir respuestas.');
+        }
+        setStatus('ready', 'Listo para escuchar');
+      }
+    }
+
+    function recognizeAndSend() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'es-ES';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      setStatus('recording', 'Escuchando...');
+      document.getElementById('recordBtn').classList.add('recording');
+      document.getElementById('r1').classList.add('active');
+      document.getElementById('r2').classList.add('active');
+      document.getElementById('r3').classList.add('active');
+      document.getElementById('recordHint').textContent = 'toca para detener';
+      vis.classList.add('active');
+      isRecording = true;
+
+      recognition.onresult = async (event) => {
+        const text = event.results[0][0].transcript;
+        cleanRecordUI();
+        addUserMessage(text);
+        if (conversationId) {
+          await sendText(text);
+        } else {
+          addBotMessage('⚙️ Configura el Direct Line Secret para conectar al bot.');
+          setStatus('ready', 'Listo para escuchar');
+        }
+      };
+
+      recognition.onerror = (e) => {
+        cleanRecordUI();
+        addBotMessage('No se entendió el audio. Intenta de nuevo.');
+        setStatus('ready', 'Listo para escuchar');
+      };
+
+      recognition.onend = () => {
+        cleanRecordUI();
+      };
+
+      recognition.start();
+
+      // Override toggleRecord to stop recognition
+      window._activeRecognition = recognition;
+    }
+
+    function cleanRecordUI() {
+      isRecording = false;
+      clearInterval(analyserInterval);
+      vis.classList.remove('active');
+      vis.querySelectorAll('.bar').forEach(b => b.style.height = '4px');
+      document.getElementById('recordBtn').classList.remove('recording');
+      document.getElementById('r1').classList.remove('active');
+      document.getElementById('r2').classList.remove('active');
+      document.getElementById('r3').classList.remove('active');
+      document.getElementById('recordHint').textContent = 'mantén para hablar';
+    }
+
+    // Override toggleRecord to handle SpeechRecognition stop
+    const _originalToggle = toggleRecord;
+    window.toggleRecord = function() {
+      if (window._activeRecognition && isRecording) {
+        window._activeRecognition.stop();
+        window._activeRecognition = null;
+        cleanRecordUI();
+        setStatus('thinking', 'Procesando...');
+      } else if (isRecording) {
+        stopRecording();
+      } else {
+        recognizeAndSend();
+      }
+    };
+
+    // ---- UI Helpers ----
+    function setStatus(type, text) {
+      const bar = document.getElementById('statusBar');
+      bar.className = 'status-bar ' + type;
+      document.getElementById('statusText').textContent = text;
+    }
+
+    function addUserMessage(text) {
+      const chat = document.getElementById('chat');
+      document.getElementById('noConfigMsg').style.display = 'none';
+      const msg = document.createElement('div');
+      msg.className = 'msg user';
+      msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble">${text}</div>`;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function addBotMessage(text) {
+      const chat = document.getElementById('chat');
+      const msg = document.createElement('div');
+      msg.className = 'msg bot';
+      msg.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble">${text}</div>`;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function showThinking() {
+      const chat = document.getElementById('chat');
+      const t = document.createElement('div');
+      t.className = 'msg bot';
+      t.id = 'thinking';
+      t.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble thinking-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+      chat.appendChild(t);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function hideThinking() {
+      const t = document.getElementById('thinking');
+      if (t) t.remove();
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  </script>
+</body>
+</html>

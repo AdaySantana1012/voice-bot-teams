@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Config - Voice Bot</title>
+  <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 24px; background: #fff; }
+    h2 { margin-bottom: 16px; }
+    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    p { font-size: 13px; color: #666; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Configurar Voice Bot</h2>
+  <input type="text" id="secret" placeholder="Direct Line Secret Key" />
+  <p>Obtén tu clave en Copilot Studio → Configuración → Canales → Direct Line</p>
+  <script>
+    microsoftTeams.app.initialize().then(() => {
+      microsoftTeams.pages.config.registerOnSaveHandler(saveEvent => {
+        const secret = document.getElementById('secret').value;
+        microsoftTeams.pages.config.setConfig({
+          entityId: 'voicebot',
+          contentUrl: `https://TU-URL-AQUI.com/index.html?secret=${encodeURIComponent(secret)}`,
+          suggestedDisplayName: 'Voice Bot'
+        });
+        saveEvent.notifySuccess();
+      });
+      microsoftTeams.pages.config.setValidityState(true);
+    });
+  </script>
+</body>
+</html>
