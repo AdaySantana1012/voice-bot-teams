@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Voice Bot</title>
+  <title>Voice Bot - Test</title>
   <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -14,12 +14,8 @@
       --surface: #13131a;
       --border: #1e1e2e;
       --accent: #7c6af7;
-      --accent-glow: #7c6af755;
-      --accent2: #f76a8f;
       --text: #e8e8f0;
       --muted: #5a5a7a;
-      --success: #4ade80;
-      --danger: #f76a8f;
       --recording: #ff4757;
     }
 
@@ -28,19 +24,17 @@
       background: var(--bg);
       color: var(--text);
       font-family: 'Syne', sans-serif;
-      overflow: hidden;
     }
 
     body {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
-      position: relative;
+      justify-content: flex-start;
+      padding: 24px 16px;
+      gap: 16px;
     }
 
-    /* Ambient background */
     body::before {
       content: '';
       position: fixed;
@@ -51,42 +45,17 @@
       pointer-events: none;
     }
 
-    .app {
-      width: 100%;
-      max-width: 420px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 32px;
-      position: relative;
-      z-index: 1;
-    }
+    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 1; }
 
-    /* Header */
-    .header {
-      text-align: center;
-    }
-
-    .header h1 {
-      font-size: 28px;
+    h1 {
+      font-size: 22px;
       font-weight: 800;
-      letter-spacing: -0.5px;
       background: linear-gradient(135deg, var(--text) 40%, var(--accent));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
-    .header p {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 6px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-
-    /* Status */
     .status-bar {
       display: flex;
       align-items: center;
@@ -102,174 +71,40 @@
     }
 
     .status-dot {
-      width: 7px;
-      height: 7px;
+      width: 7px; height: 7px;
       border-radius: 50%;
       background: var(--muted);
       transition: all 0.3s;
     }
 
-    .status-bar.recording .status-dot {
-      background: var(--recording);
-      box-shadow: 0 0 8px var(--recording);
-      animation: pulse-dot 1s infinite;
-    }
+    .status-bar.ok .status-dot { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    .status-bar.ok { border-color: #4ade80; color: var(--text); }
+    .status-bar.thinking .status-dot { background: var(--accent); animation: pulse 1s infinite; }
+    .status-bar.error .status-dot { background: var(--recording); }
+    .status-bar.error { border-color: var(--recording); color: var(--text); }
 
-    .status-bar.recording {
-      border-color: var(--recording);
-      color: var(--text);
-    }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
 
-    .status-bar.thinking .status-dot {
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse-dot 1.5s infinite;
-    }
-
-    .status-bar.thinking {
-      border-color: var(--accent);
-      color: var(--text);
-    }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.8); }
-    }
-
-    /* Waveform visualizer */
-    .visualizer-wrap {
-      width: 100%;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-    }
-
-    .bar {
-      width: 3px;
-      border-radius: 2px;
-      background: var(--border);
-      height: 4px;
-      transition: height 0.1s ease, background 0.3s;
-    }
-
-    .visualizer-wrap.active .bar {
-      background: var(--accent);
-    }
-
-    /* Record button */
-    .record-btn-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .ripple {
-      position: absolute;
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      border: 2px solid var(--recording);
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .ripple.active {
-      animation: ripple-out 1.5s infinite;
-    }
-
-    .ripple:nth-child(2) { animation-delay: 0.5s !important; }
-    .ripple:nth-child(3) { animation-delay: 1s !important; }
-
-    @keyframes ripple-out {
-      0% { transform: scale(0.9); opacity: 0.6; }
-      100% { transform: scale(1.8); opacity: 0; }
-    }
-
-    .record-btn {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      border: none;
-      cursor: pointer;
-      background: var(--surface);
-      border: 2px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      position: relative;
-      z-index: 1;
-    }
-
-    .record-btn:active {
-      transform: scale(0.94);
-    }
-
-    .record-btn.recording {
-      background: #1a0a0f;
-      border-color: var(--recording);
-      box-shadow: 0 0 30px #ff475720, 0 0 60px #ff475710;
-    }
-
-    .mic-icon {
-      width: 36px;
-      height: 36px;
-      transition: all 0.2s;
-    }
-
-    .record-btn.recording .mic-icon {
-      filter: drop-shadow(0 0 6px var(--recording));
-    }
-
-    .record-hint {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-top: 4px;
-    }
-
-    /* Chat */
     .chat {
       width: 100%;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 260px;
+      height: 340px;
       overflow-y: auto;
       padding-right: 4px;
     }
 
     .chat::-webkit-scrollbar { width: 3px; }
-    .chat::-webkit-scrollbar-track { background: transparent; }
     .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-    .msg {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      animation: slide-in 0.3s ease;
-    }
-
-    @keyframes slide-in {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    .msg { display: flex; flex-direction: column; gap: 3px; animation: slide-in 0.3s ease; }
+    @keyframes slide-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
     .msg.user { align-items: flex-end; }
     .msg.bot { align-items: flex-start; }
 
-    .msg-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
+    .msg-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 
     .msg-bubble {
       max-width: 85%;
@@ -279,181 +114,185 @@
       line-height: 1.5;
     }
 
-    .msg.user .msg-bubble {
-      background: var(--accent);
-      color: white;
-      border-bottom-right-radius: 4px;
+    .msg.user .msg-bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+    .msg.bot .msg-bubble { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+
+    .thinking-bubble { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: bounce 1.2s infinite; }
+    .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
     }
 
-    .msg.bot .msg-bubble {
+    .text-input {
+      flex: 1;
       background: var(--surface);
       border: 1px solid var(--border);
-      color: var(--text);
-      border-bottom-left-radius: 4px;
-    }
-
-    .thinking-bubble {
-      display: flex;
-      gap: 4px;
-      align-items: center;
+      border-radius: 12px;
       padding: 12px 16px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
     }
 
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
+    .text-input:focus { border-color: var(--accent); }
+    .text-input::placeholder { color: var(--muted); }
+
+    .send-btn {
       background: var(--accent);
-      animation: bounce 1.2s infinite;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
     }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
 
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-6px); }
-    }
+    .send-btn:active { transform: scale(0.95); opacity: 0.9; }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .no-config {
-      text-align: center;
+    .debug {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
       color: var(--muted);
-      font-size: 13px;
-      padding: 8px 0;
+      line-height: 1.6;
     }
+
+    .debug span { color: var(--text); }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="header">
-      <h1>Voice Bot</h1>
-      <p>Habla con tu asistente</p>
-    </div>
+    <h1>Voice Bot · Test</h1>
 
     <div class="status-bar" id="statusBar">
       <div class="status-dot"></div>
-      <span id="statusText">Listo para escuchar</span>
+      <span id="statusText">Conectando...</span>
     </div>
 
-    <div class="visualizer-wrap" id="visualizer"></div>
+    <div class="chat" id="chat"></div>
 
-    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
-      <div class="record-btn-wrap">
-        <div class="ripple" id="r1"></div>
-        <div class="ripple" id="r2"></div>
-        <div class="ripple" id="r3"></div>
-        <button class="record-btn" id="recordBtn" onclick="toggleRecord()">
-          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="2" width="6" height="12" rx="3"/>
-            <path d="M5 10a7 7 0 0 0 14 0"/>
-            <line x1="12" y1="17" x2="12" y2="21"/>
-            <line x1="9" y1="21" x2="15" y2="21"/>
-          </svg>
-        </button>
-      </div>
-      <div class="record-hint" id="recordHint">mantén para hablar</div>
+    <div class="input-row">
+      <input class="text-input" id="textInput" type="text" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter') sendMessage()" />
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>Enviar</button>
     </div>
 
-    <div class="chat" id="chat">
-      <div class="no-config" id="noConfigMsg" style="display:none">
-        ⚙️ Configura tu bot abajo para empezar
-      </div>
+    <div class="debug" id="debug">
+      key: <span id="dbKey">-</span><br>
+      conversationId: <span id="dbConv">-</span><br>
+      token: <span id="dbToken">-</span>
     </div>
-
-
   </div>
 
   <script>
-    // ---- Init Teams SDK ----
-    microsoftTeams.app.initialize().then(() => {
-      microsoftTeams.app.getContext().then(ctx => {
-        console.log("Teams context:", ctx);
-      });
-    }).catch(() => {
-      console.log("Running outside Teams - OK for testing");
-    });
+    microsoftTeams.app.initialize().catch(() => {});
 
-    // ---- State ----
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecording = false;
+    const PROXY_URL = 'https://voicebot-proxy.azurewebsites.net/api/token';
+
     let dlToken = null;
     let conversationId = null;
     let watermark = null;
-    // Lee la key desde la URL (puesta en el manifest, no en el código)
-    const params = new URLSearchParams(window.location.search);
-    let directLineSecret = params.get('key') || '';
-    let analyserInterval = null;
 
-    // ---- Build visualizer bars ----
-    const vis = document.getElementById('visualizer');
-    const NUM_BARS = 32;
-    for (let i = 0; i < NUM_BARS; i++) {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      bar.style.height = '4px';
-      vis.appendChild(bar);
-    }
+    // Debug panel
+    document.getElementById('dbKey').textContent = 'via proxy ✓';
 
-    // Inicia Direct Line automáticamente si hay key en la URL
-    if (directLineSecret) {
-      initDirectLine();
-    } else {
-      setStatus('ready', 'Sin configuración');
-      addBotMessage('⚠️ No se encontró la clave de configuración.');
-    }
-
-    // ---- Direct Line ----
-    async function initDirectLine() {
+    async function init() {
       try {
-        setStatus('connecting', 'Conectando...');
-        const res = await fetch('https://directline.botframework.com/v3/directline/tokens/generate', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${directLineSecret}` }
-        });
-        const data = await res.json();
-        dlToken = data.token;
+        setStatus('thinking', 'Generando token...');
+        const tokenRes = await fetch(PROXY_URL);
 
+        if (!tokenRes.ok) {
+          const err = await tokenRes.text();
+          setStatus('error', `Error token: ${tokenRes.status}`);
+          addBotMessage(`⚠️ Error generando token (${tokenRes.status}): ${err}`);
+          return;
+        }
+
+        const tokenData = await tokenRes.json();
+        dlToken = tokenData.token;
+        document.getElementById('dbToken').textContent = dlToken ? dlToken.substring(0, 12) + '...' : 'null';
+
+        setStatus('thinking', 'Iniciando conversación...');
         const convRes = await fetch('https://directline.botframework.com/v3/directline/conversations', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${dlToken}` }
         });
+
+        if (!convRes.ok) {
+          const err = await convRes.text();
+          setStatus('error', `Error conversación: ${convRes.status}`);
+          addBotMessage(`⚠️ Error iniciando conversación (${convRes.status}): ${err}`);
+          return;
+        }
+
         const convData = await convRes.json();
         conversationId = convData.conversationId;
-        setStatus('ready', 'Listo para escuchar');
-        addBotMessage('¡Hola! Pulsa el micrófono y habla 🎙️');
+        document.getElementById('dbConv').textContent = conversationId;
+
+        setStatus('ok', 'Conectado ✓');
+        document.getElementById('sendBtn').disabled = false;
+        addBotMessage('✅ Conectado. Escribe algo para probar el bot.');
+
       } catch (e) {
-        setStatus('ready', 'Error de conexión');
-        addBotMessage('⚠️ No se pudo conectar al bot. Revisa tu Direct Line Secret.');
+        setStatus('error', 'Error de red');
+        addBotMessage('⚠️ Error de red: ' + e.message);
       }
     }
 
-    async function sendText(text) {
-      if (!conversationId) return;
-      await fetch(`https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${dlToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          type: 'message',
-          from: { id: 'user1', name: 'Usuario' },
-          text: text
-        })
-      });
-      await pollReply();
+    async function sendMessage() {
+      const input = document.getElementById('textInput');
+      const text = input.value.trim();
+      if (!text || !conversationId) return;
+      input.value = '';
+      document.getElementById('sendBtn').disabled = true;
+
+      addUserMessage(text);
+
+      try {
+        await fetch(`https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${dlToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'message',
+            from: { id: 'user1', name: 'Usuario' },
+            text: text
+          })
+        });
+        await pollReply();
+      } catch(e) {
+        addBotMessage('⚠️ Error enviando: ' + e.message);
+      }
+
+      document.getElementById('sendBtn').disabled = false;
     }
 
     async function pollReply() {
-      setStatus('thinking', 'Pensando...');
+      setStatus('thinking', 'Esperando respuesta...');
       showThinking();
-      const url = watermark
-        ? `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities?watermark=${watermark}`
-        : `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
 
       for (let i = 0; i < 12; i++) {
         await sleep(1500);
         try {
+          const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities` +
+            (watermark ? `?watermark=${watermark}` : '');
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
           const data = await res.json();
           watermark = data.watermark;
@@ -461,185 +300,15 @@
           if (botMsgs.length > 0) {
             hideThinking();
             botMsgs.forEach(m => addBotMessage(m.text));
-            setStatus('ready', 'Listo para escuchar');
+            setStatus('ok', 'Conectado ✓');
             return;
           }
         } catch {}
       }
       hideThinking();
-      setStatus('ready', 'Sin respuesta');
+      setStatus('ok', 'Sin respuesta del bot');
     }
 
-    // ---- Recording ----
-    async function toggleRecord() {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        await startRecording();
-      }
-    }
-
-    async function startRecording() {
-      try {
-        // Request mic — works natively on mobile Teams webview
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        isRecording = true;
-        audioChunks = [];
-
-        // Visualizer
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64;
-        source.connect(analyser);
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const bars = vis.querySelectorAll('.bar');
-        vis.classList.add('active');
-
-        analyserInterval = setInterval(() => {
-          analyser.getByteFrequencyData(dataArray);
-          bars.forEach((bar, i) => {
-            const val = dataArray[i] || 0;
-            const h = 4 + (val / 255) * 52;
-            bar.style.height = h + 'px';
-          });
-        }, 50);
-
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-          clearInterval(analyserInterval);
-          vis.classList.remove('active');
-          vis.querySelectorAll('.bar').forEach(b => b.style.height = '4px');
-          stream.getTracks().forEach(t => t.stop());
-          await transcribeAndSend();
-        };
-
-        mediaRecorder.start();
-        setStatus('recording', 'Grabando...');
-        document.getElementById('recordBtn').classList.add('recording');
-        document.getElementById('r1').classList.add('active');
-        document.getElementById('r2').classList.add('active');
-        document.getElementById('r3').classList.add('active');
-        document.getElementById('recordHint').textContent = 'toca para detener';
-      } catch (e) {
-        alert('No se pudo acceder al micrófono. Verifica los permisos.');
-      }
-    }
-
-    function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-      isRecording = false;
-      document.getElementById('recordBtn').classList.remove('recording');
-      document.getElementById('r1').classList.remove('active');
-      document.getElementById('r2').classList.remove('active');
-      document.getElementById('r3').classList.remove('active');
-      document.getElementById('recordHint').textContent = 'mantén para hablar';
-      setStatus('thinking', 'Procesando audio...');
-    }
-
-    async function transcribeAndSend() {
-      // Use Web Speech API for transcription (no backend needed)
-      const blob = new Blob(audioChunks, { type: 'audio/webm' });
-
-      // Try Web Speech API real-time (fallback to a simple approach)
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      if (SpeechRecognition) {
-        // Re-record using SpeechRecognition for transcription
-        // Since we already have audio, use a fresh recognition for the next attempt
-        // Instead, let's use the recognition API inline
-        setStatus('thinking', 'Transcribiendo...');
-        addUserMessage('[Audio enviado - transcribiendo...]');
-        // We'll switch to live recognition approach
-        recognizeAndSend();
-      } else {
-        addUserMessage('[Audio enviado]');
-        if (conversationId) {
-          await sendText('[El usuario envió un mensaje de voz]');
-        } else {
-          addBotMessage('⚙️ Configura el bot para recibir respuestas.');
-        }
-        setStatus('ready', 'Listo para escuchar');
-      }
-    }
-
-    function recognizeAndSend() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return;
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'es-ES';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      setStatus('recording', 'Escuchando...');
-      document.getElementById('recordBtn').classList.add('recording');
-      document.getElementById('r1').classList.add('active');
-      document.getElementById('r2').classList.add('active');
-      document.getElementById('r3').classList.add('active');
-      document.getElementById('recordHint').textContent = 'toca para detener';
-      vis.classList.add('active');
-      isRecording = true;
-
-      recognition.onresult = async (event) => {
-        const text = event.results[0][0].transcript;
-        cleanRecordUI();
-        addUserMessage(text);
-        if (conversationId) {
-          await sendText(text);
-        } else {
-          addBotMessage('⚙️ Configura el Direct Line Secret para conectar al bot.');
-          setStatus('ready', 'Listo para escuchar');
-        }
-      };
-
-      recognition.onerror = (e) => {
-        cleanRecordUI();
-        addBotMessage('No se entendió el audio. Intenta de nuevo.');
-        setStatus('ready', 'Listo para escuchar');
-      };
-
-      recognition.onend = () => {
-        cleanRecordUI();
-      };
-
-      recognition.start();
-
-      // Override toggleRecord to stop recognition
-      window._activeRecognition = recognition;
-    }
-
-    function cleanRecordUI() {
-      isRecording = false;
-      clearInterval(analyserInterval);
-      vis.classList.remove('active');
-      vis.querySelectorAll('.bar').forEach(b => b.style.height = '4px');
-      document.getElementById('recordBtn').classList.remove('recording');
-      document.getElementById('r1').classList.remove('active');
-      document.getElementById('r2').classList.remove('active');
-      document.getElementById('r3').classList.remove('active');
-      document.getElementById('recordHint').textContent = 'mantén para hablar';
-    }
-
-    // Override toggleRecord to handle SpeechRecognition stop
-    const _originalToggle = toggleRecord;
-    window.toggleRecord = function() {
-      if (window._activeRecognition && isRecording) {
-        window._activeRecognition.stop();
-        window._activeRecognition = null;
-        cleanRecordUI();
-        setStatus('thinking', 'Procesando...');
-      } else if (isRecording) {
-        stopRecording();
-      } else {
-        recognizeAndSend();
-      }
-    };
-
-    // ---- UI Helpers ----
     function setStatus(type, text) {
       const bar = document.getElementById('statusBar');
       bar.className = 'status-bar ' + type;
@@ -648,7 +317,6 @@
 
     function addUserMessage(text) {
       const chat = document.getElementById('chat');
-      document.getElementById('noConfigMsg').style.display = 'none';
       const msg = document.createElement('div');
       msg.className = 'msg user';
       msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble">${text}</div>`;
@@ -668,8 +336,7 @@
     function showThinking() {
       const chat = document.getElementById('chat');
       const t = document.createElement('div');
-      t.className = 'msg bot';
-      t.id = 'thinking';
+      t.className = 'msg bot'; t.id = 'thinking';
       t.innerHTML = `<div class="msg-label">Bot</div><div class="msg-bubble thinking-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
       chat.appendChild(t);
       chat.scrollTop = chat.scrollHeight;
@@ -681,6 +348,8 @@
     }
 
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    init();
   </script>
 </body>
 </html>
