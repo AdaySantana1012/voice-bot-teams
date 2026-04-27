@@ -56,7 +56,7 @@
     <h1>Voice Bot</h1>
     <div class="status-bar" id="statusBar">
       <div class="status-dot"></div>
-      <span id="statusText">Iniciando SSO...</span>
+      <span id="statusText">Iniciando...</span>
     </div>
     <div class="chat" id="chat"></div>
     <div class="input-row">
@@ -64,33 +64,42 @@
       <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>Enviar</button>
     </div>
     <div class="debug">
-      sso: <span id="dbSSO">-</span><br>
+      usuario: <span id="dbUser">-</span><br>
       conversationId: <span id="dbConv">-</span><br>
       token: <span id="dbToken">-</span>
     </div>
   </div>
   <script>
-    const APP_ID = '4a693834-2aa8-478e-a086-98d7de9ade7e';
     const PROXY_URL = 'https://voicebot-proxy.azurewebsites.net/api/token';
+    const DL_BASE = 'https://europe.directline.botframework.com/v3/directline';
+
     let dlToken = null, conversationId = null, watermark = null;
+    let userId = 'dl_anonymous', userName = 'Usuario';
 
     async function init() {
       try {
         await microsoftTeams.app.initialize();
-        setStatus('thinking', 'Obteniendo token SSO...');
+        setStatus('thinking', 'Obteniendo contexto de Teams...');
 
-        const ssoToken = await new Promise((resolve, reject) => {
-          microsoftTeams.authentication.getAuthToken({
-            resources: [`api://${APP_ID}`],
-            successCallback: resolve,
-            failureCallback: (err) => reject(new Error(typeof err === 'string' ? err : JSON.stringify(err)))
-          });
+        // Obtén el usuario real de Teams
+        try {
+          const context = await microsoftTeams.app.getContext();
+          userId = `dl_${context.user.id}`;
+          userName = context.user.displayName || 'Usuario';
+        } catch(e) {
+          console.warn('No se pudo obtener contexto de Teams:', e);
+        }
+
+        document.getElementById('dbUser').textContent = userName;
+        setStatus('thinking', 'Generando token...');
+
+        // Solicita el token al proxy pasando el userId
+        const tokenRes = await fetch(PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId })
         });
 
-        document.getElementById('dbSSO').textContent = ssoToken ? ssoToken.substring(0, 12) + '...' : 'null';
-        setStatus('thinking', 'Generando token Direct Line...');
-
-        const tokenRes = await fetch(PROXY_URL);
         if (!tokenRes.ok) {
           const err = await tokenRes.text();
           setStatus('error', `Error token: ${tokenRes.status}`);
@@ -103,7 +112,7 @@
         document.getElementById('dbToken').textContent = dlToken ? dlToken.substring(0, 12) + '...' : 'null';
 
         setStatus('thinking', 'Iniciando conversación...');
-        const convRes = await fetch('https://europe.directline.botframework.com/v3/directline/conversations', {
+        const convRes = await fetch(`${DL_BASE}/conversations`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${dlToken}` }
         });
@@ -119,25 +128,13 @@
         conversationId = convData.conversationId;
         document.getElementById('dbConv').textContent = conversationId;
 
-        // Envía el token SSO al bot
-        await fetch(`https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'invoke',
-            name: 'signin/tokenExchange',
-            from: { id: 'user1', name: 'Usuario' },
-            value: { id: '1', connectionName: 'VoiceBotSSO', token: ssoToken }
-          })
-        });
-
         setStatus('ok', 'Conectado ✓');
         document.getElementById('sendBtn').disabled = false;
-        addBotMessage('✅ Autenticado. Escribe algo para probar el bot.');
+        addBotMessage(`✅ Conectado como ${userName}. Escribe algo para probar el bot.`);
 
       } catch (e) {
-        setStatus('error', 'Error SSO: ' + e.message);
-        addBotMessage('⚠️ Error SSO: ' + e.message);
+        setStatus('error', 'Error: ' + e.message);
+        addBotMessage('⚠️ Error: ' + e.message);
       }
     }
 
@@ -149,10 +146,14 @@
       document.getElementById('sendBtn').disabled = true;
       addUserMessage(text);
       try {
-        await fetch(`https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`, {
+        await fetch(`${DL_BASE}/conversations/${conversationId}/activities`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'message', from: { id: 'user1', name: 'Usuario' }, text: text })
+          body: JSON.stringify({
+            type: 'message',
+            from: { id: userId, name: userName },
+            text: text
+          })
         });
         await pollReply();
       } catch(e) {
@@ -167,12 +168,12 @@
       for (let i = 0; i < 12; i++) {
         await sleep(1500);
         try {
-          const url = `https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities` +
+          const url = `${DL_BASE}/conversations/${conversationId}/activities` +
             (watermark ? `?watermark=${watermark}` : '');
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
           const data = await res.json();
           watermark = data.watermark;
-          const botMsgs = (data.activities || []).filter(a => a.from.id !== 'user1' && a.type === 'message');
+          const botMsgs = (data.activities || []).filter(a => a.from.id !== userId && a.type === 'message');
           if (botMsgs.length > 0) {
             hideThinking();
             botMsgs.forEach(m => addBotMessage(m.text));
