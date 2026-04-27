@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "id": "com.voicebot.teams.tab",
   "developer": {
-    "name": "Tu Empresa",
-    "websiteUrl": "https://TU-URL-AQUI.com",
-    "privacyUrl": "https://TU-URL-AQUI.com/privacy",
-    "termsOfUseUrl": "https://TU-URL-AQUI.com/terms"
+    "name": "Compra Camper",
+    "websiteUrl": "https://adaysantana1012.github.io/voice-bot-teams",
+    "privacyUrl": "https://adaysantana1012.github.io/voice-bot-teams",
+    "termsOfUseUrl": "https://adaysantana1012.github.io/voice-bot-teams"
   },
   "name": {
     "short": "Voice Bot",
@@ -26,18 +26,18 @@
     {
       "entityId": "voicebot",
       "name": "Voice Bot",
-      "contentUrl": "https://TU-URL-AQUI.com/index.html",
+      "contentUrl": "https://adaysantana1012.github.io//index.html",
       "scopes": ["personal"]
     }
   ],
   "configurableTabs": [
     {
-      "configurationUrl": "https://TU-URL-AQUI.com/config.html",
+      "configurationUrl": "https://adaysantana1012.github.io//config.html",
       "canUpdateConfiguration": true,
       "scopes": ["team", "groupchat"]
     }
   ],
   "permissions": ["identity", "messageTeamMembers"],
   "devicePermissions": ["microphone"],
-  "validDomains": ["TU-URL-AQUI.com"]
+  "validDomains": ["https://adaysantana1012.github.io/"]
 }
