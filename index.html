@@ -66,6 +66,7 @@
     <div class="debug">
       sso: <span id="dbSSO">-</span><br>
       user: <span id="dbUser">-</span><br>
+      dlUserId: <span id="dbDlUser">-</span><br>
       conversationId: <span id="dbConv">-</span><br>
       dlToken: <span id="dbToken">-</span>
     </div>
@@ -84,13 +85,13 @@
     let conversationId = null;
     let watermark = null;
     let userId = null;
+    let dlUserId = null;
 
     async function init() {
       try {
         await microsoftTeams.app.initialize();
         setStatus('thinking', 'Obteniendo token SSO...');
 
-        // 1) SSO token de Teams (audience = el RESOURCE del manifest)
         ssoToken = await new Promise((resolve, reject) => {
           microsoftTeams.authentication.getAuthToken({
             resources: [RESOURCE],
@@ -100,14 +101,14 @@
         });
         document.getElementById('dbSSO').textContent = ssoToken.substring(0, 20) + '...';
 
-        // Decodifica el JWT (sin verificar firma, solo para mostrar quién es)
         try {
           const payload = JSON.parse(atob(ssoToken.split('.')[1]));
           userId = payload.oid || payload.sub;
+          dlUserId = `dl_${userId}`;
           document.getElementById('dbUser').textContent = (payload.preferred_username || payload.upn || userId || 'unknown');
+          document.getElementById('dbDlUser').textContent = dlUserId;
         } catch (_) {}
 
-        // 2) Pide token de Direct Line a tu Function App, mandando el SSO en el header
         setStatus('thinking', 'Generando token Direct Line...');
         const tokenRes = await fetch(PROXY_URL, {
           method: 'GET',
@@ -125,7 +126,6 @@
         dlToken = tokenData.token;
         document.getElementById('dbToken').textContent = dlToken.substring(0, 20) + '...';
 
-        // 3) Inicia conversación en Direct Line
         setStatus('thinking', 'Iniciando conversación...');
         const convRes = await fetch(`${DIRECTLINE_BASE}/conversations`, {
           method: 'POST',
@@ -170,7 +170,7 @@
           },
           body: JSON.stringify({
             type: 'message',
-            from: { id: userId || 'user1', name: 'Usuario' },
+            from: { id: dlUserId, name: 'Usuario' },
             text: text
           })
         });
@@ -192,8 +192,13 @@
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
           const data = await res.json();
           watermark = data.watermark;
+          // Filtra: solo mensajes que NO sean nuestros (ni con userId, ni con dl_<userId>, ni con 'user1' antiguo)
           const botMsgs = (data.activities || []).filter(a =>
-            a.type === 'message' && a.from && a.from.id !== (userId || 'user1')
+            a.type === 'message' &&
+            a.from &&
+            a.from.id !== dlUserId &&
+            a.from.id !== userId &&
+            a.from.id !== 'user1'
           );
           if (botMsgs.length > 0) {
             hideThinking();
