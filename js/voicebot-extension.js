@@ -14,7 +14,7 @@
 
 // ============ 1) Custom Input.Rating ============
 
-class InputRating extends AdaptiveCard.Input {
+class InputRating extends AdaptiveCards.Input {
 
   // Propiedades del schema
   static idProperty = new AdaptiveCards.StringProperty(AdaptiveCards.Versions.v1_0, "id", true);
