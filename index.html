@@ -230,8 +230,11 @@
         document.getElementById('sendBtn').disabled = false;
         document.getElementById('micBtn').disabled = false;
 
+        // Arranca el polling continuo: a partir de ahora cualquier mensaje del bot
+        // (incluido el Greeting) aparecerá en el chat.
         startContinuousPolling();
 
+        // Dispara el system topic "Conversation Start" del agente
         await sendConversationUpdate();
 
       } catch (e) {
@@ -240,23 +243,42 @@
       }
     }
 
+    // Manda al bot los eventos que pueden disparar su Greeting
     async function sendConversationUpdate() {
+      const headers = {
+        'Authorization': `Bearer ${dlToken}`,
+        'Content-Type': 'application/json'
+      };
+      const url = `${DIRECTLINE_BASE}/conversations/${conversationId}/activities`;
+
+      // 1) conversationUpdate clásico (Bot Framework)
       try {
-        await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
+        await fetch(url, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${dlToken}`,
-            'Content-Type': 'application/json'
-          },
+          headers,
           body: JSON.stringify({
             type: 'conversationUpdate',
             from: { id: dlUserId, name: userName },
             membersAdded: [{ id: dlUserId, name: userName }]
           })
         });
-        setStatus('thinking', 'Preparando saludo...');
       } catch (e) {
-        console.warn('No se pudo enviar conversationUpdate:', e);
+        console.warn('conversationUpdate falló:', e);
+      }
+
+      // 2) Event "startConversation" (lo que Copilot Studio suele escuchar)
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            type: 'event',
+            name: 'startConversation',
+            from: { id: dlUserId, name: userName }
+          })
+        });
+      } catch (e) {
+        console.warn('event startConversation falló:', e);
       }
     }
 
@@ -381,6 +403,8 @@
       }
     }
 
+    // Polling continuo: corre indefinidamente desde init() y enseña cualquier
+    // mensaje que llegue del bot, sin depender de que el usuario haya escrito antes.
     async function startContinuousPolling() {
       if (polling) return;
       polling = true;
@@ -406,6 +430,7 @@
             }
           }
         } catch (e) {
+          // ignora errores transitorios
         }
         await sleep(1500);
       }
@@ -446,6 +471,7 @@
       chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
     }
     function showThinking() {
+      // Solo añade thinking si no hay ya uno
       if (document.getElementById('thinking')) return;
       const chat = document.getElementById('chat');
       const t = document.createElement('div');
