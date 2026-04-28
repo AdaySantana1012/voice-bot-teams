@@ -9,20 +9,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --orange: #FF8D30;
-      --orange-soft: #FFE7D2;
-      --orange-dark: #E5731A;
-      --black: #212425;
-      --white: #FFFFFF;
-      --cyan: #B7F0F0;
-      --cyan-soft: #E5F8F8;
-      --yellow: #FED227;
-      --bg: #FAFAFA;
-      --surface: #FFFFFF;
-      --border: #E8E8E8;
-      --text: #212425;
-      --muted: #6B6F71;
-      --recording: #E5333D;
+      --orange: #FF8D30; --orange-soft: #FFE7D2; --orange-dark: #E5731A;
+      --black: #212425; --white: #FFFFFF; --cyan: #B7F0F0; --cyan-soft: #E5F8F8;
+      --yellow: #FED227; --bg: #FAFAFA; --surface: #FFFFFF; --border: #E8E8E8;
+      --text: #212425; --muted: #6B6F71; --recording: #E5333D;
     }
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     body { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 16px; gap: 14px; }
@@ -66,17 +56,33 @@
     .audio-transcript { font-size: 12px; line-height: 1.4; opacity: 0.95; font-style: italic; padding: 0 4px; color: var(--white); }
     .audio-transcript.loading { opacity: 0.7; display: flex; align-items: center; gap: 6px; }
     .audio-transcript.loading::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); animation: pulse 0.8s infinite; }
+    .file-bubble { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-width: 240px; background: var(--orange); color: var(--white); }
+    .file-icon { width: 36px; height: 36px; flex-shrink: 0; background: rgba(255, 255, 255, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .file-icon svg { width: 20px; height: 20px; }
+    .file-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .file-name { font-size: 13px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-size { font-size: 11px; opacity: 0.85; font-family: 'JetBrains Mono', monospace; }
+    .file-preview { display: none; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; animation: slide-in 0.2s ease; }
+    .file-preview.active { display: flex; }
+    .file-preview .file-icon { background: var(--orange-soft); color: var(--orange); }
+    .file-preview .file-name { color: var(--text); }
+    .file-preview .file-size { color: var(--muted); }
+    .file-preview-remove { background: transparent; border: none; cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: all 0.2s; }
+    .file-preview-remove:hover { background: rgba(229, 51, 61, 0.1); color: var(--recording); }
+    .file-preview-remove svg { width: 16px; height: 16px; }
     .input-row { display: flex; gap: 8px; width: 100%; align-items: stretch; }
     .input-wrap { flex: 1; position: relative; display: flex; align-items: center; }
-    .text-input { flex: 1; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 48px 12px 14px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    .text-input { flex: 1; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 80px 12px 44px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
     .text-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255, 141, 48, 0.12); }
     .text-input::placeholder { color: var(--muted); }
     .text-input:disabled { opacity: 0.5; background: #F5F5F5; }
-    .mic-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; background: transparent; border: none; border-radius: 8px; color: var(--orange); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-    .mic-btn:hover { background: var(--orange-soft); }
-    .mic-btn:active { transform: translateY(-50%) scale(0.92); }
-    .mic-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .mic-btn svg { width: 19px; height: 19px; }
+    .input-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: transparent; border: none; border-radius: 8px; color: var(--orange); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+    .input-btn:hover { background: var(--orange-soft); }
+    .input-btn:active { transform: translateY(-50%) scale(0.92); }
+    .input-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .input-btn svg { width: 18px; height: 18px; }
+    .attach-btn { left: 6px; }
+    .mic-btn { right: 6px; }
     .mic-btn.recording { background: var(--recording); color: var(--white); animation: rec-pulse 1.2s infinite; }
     @keyframes rec-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(229, 51, 61, 0.5); } 50% { box-shadow: 0 0 0 8px rgba(229, 51, 61, 0); } }
     .send-btn { background: var(--black); color: var(--white); border: none; border-radius: 10px; padding: 0 18px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; letter-spacing: -0.01em; }
@@ -119,10 +125,34 @@
       <span class="hint">Pulsa el micro para enviar</span>
     </div>
 
+    <div class="file-preview" id="filePreview">
+      <div class="file-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <div class="file-info">
+        <div class="file-name" id="filePreviewName">documento.pdf</div>
+        <div class="file-size" id="filePreviewSize">0 KB</div>
+      </div>
+      <button class="file-preview-remove" id="fileRemoveBtn" onclick="clearAttachedFile()" aria-label="Quitar archivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
     <div class="input-row">
       <div class="input-wrap">
+        <button class="input-btn attach-btn" id="attachBtn" onclick="document.getElementById('fileInput').click()" disabled aria-label="Adjuntar PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
         <input class="text-input" id="textInput" type="text" placeholder="Escribe tu consulta..." onkeydown="if(event.key==='Enter') sendTextMessage()" />
-        <button class="mic-btn" id="micBtn" onclick="toggleRecording()" disabled aria-label="Grabar audio">
+        <button class="input-btn mic-btn" id="micBtn" onclick="toggleRecording()" disabled aria-label="Grabar audio">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -130,6 +160,7 @@
             <line x1="8" y1="23" x2="16" y2="23"/>
           </svg>
         </button>
+        <input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="onFilePicked(event)" />
       </div>
       <button class="send-btn" id="sendBtn" onclick="sendTextMessage()" disabled>Enviar</button>
     </div>
@@ -157,6 +188,7 @@
     const TOKEN_URL = `${PROXY_BASE}/token`;
     const TRANSCRIBE_URL = `${PROXY_BASE}/transcribe`;
     const DIRECTLINE_BASE = 'https://europe.directline.botframework.com/v3/directline';
+    const MAX_FILE_BYTES = 4 * 1024 * 1024; // 4 MB - límite del endpoint /upload de Direct Line
 
     // ====== STATE ======
     let ssoToken = null;
@@ -166,13 +198,15 @@
     let userId = null;
     let dlUserId = null;
     let userName = 'Usuario';
-    let polling = false;     // controla el loop de polling continuo
+    let polling = false;
 
     let mediaRecorder = null;
     let audioChunks = [];
     let recordingStream = null;
     let recordStart = 0;
     let recordTimer = null;
+
+    let attachedFile = null; // { file: File, name, size, mimeType }
 
     async function init() {
       try {
@@ -199,8 +233,7 @@
 
         setStatus('thinking', 'Conectando con el asistente...');
         const tokenRes = await fetch(TOKEN_URL, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${ssoToken}` }
+          method: 'GET', headers: { 'Authorization': `Bearer ${ssoToken}` }
         });
         if (!tokenRes.ok) {
           const err = await tokenRes.text();
@@ -213,8 +246,7 @@
         document.getElementById('dbToken').textContent = dlToken.substring(0, 20) + '...';
 
         const convRes = await fetch(`${DIRECTLINE_BASE}/conversations`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${dlToken}` }
+          method: 'POST', headers: { 'Authorization': `Bearer ${dlToken}` }
         });
         if (!convRes.ok) {
           const err = await convRes.text();
@@ -229,12 +261,9 @@
         setStatus('ok', 'Conectado');
         document.getElementById('sendBtn').disabled = false;
         document.getElementById('micBtn').disabled = false;
+        document.getElementById('attachBtn').disabled = false;
 
-        // Arranca el polling continuo: a partir de ahora cualquier mensaje del bot
-        // (incluido el Greeting) aparecerá en el chat.
         startContinuousPolling();
-
-        // Dispara el system topic "Conversation Start" del agente
         await sendConversationUpdate();
 
       } catch (e) {
@@ -243,61 +272,165 @@
       }
     }
 
-    // Manda al bot los eventos que pueden disparar su Greeting
     async function sendConversationUpdate() {
-      const headers = {
-        'Authorization': `Bearer ${dlToken}`,
-        'Content-Type': 'application/json'
-      };
+      const headers = { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' };
       const url = `${DIRECTLINE_BASE}/conversations/${conversationId}/activities`;
-
-      // 1) conversationUpdate clásico (Bot Framework)
       try {
         await fetch(url, {
-          method: 'POST',
-          headers,
+          method: 'POST', headers,
           body: JSON.stringify({
             type: 'conversationUpdate',
             from: { id: dlUserId, name: userName },
             membersAdded: [{ id: dlUserId, name: userName }]
           })
         });
-      } catch (e) {
-        console.warn('conversationUpdate falló:', e);
-      }
-
-      // 2) Event "startConversation" (lo que Copilot Studio suele escuchar)
+      } catch (e) { console.warn('conversationUpdate falló:', e); }
       try {
         await fetch(url, {
-          method: 'POST',
-          headers,
+          method: 'POST', headers,
           body: JSON.stringify({
-            type: 'event',
-            name: 'startConversation',
+            type: 'event', name: 'startConversation',
             from: { id: dlUserId, name: userName }
           })
         });
-      } catch (e) {
-        console.warn('event startConversation falló:', e);
-      }
+      } catch (e) { console.warn('event startConversation falló:', e); }
     }
 
+    // ====== Adjuntar archivo ======
+    function onFilePicked(event) {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+
+      if (file.type !== 'application/pdf') {
+        addBotMessage('Solo se admiten archivos PDF.');
+        return;
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        addBotMessage(`El archivo es demasiado grande. Máximo ${(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)}MB.`);
+        return;
+      }
+
+      attachedFile = {
+        file: file,
+        name: file.name,
+        size: file.size,
+        mimeType: file.type
+      };
+      showFilePreview();
+    }
+
+    function showFilePreview() {
+      if (!attachedFile) return;
+      document.getElementById('filePreviewName').textContent = attachedFile.name;
+      document.getElementById('filePreviewSize').textContent = formatBytes(attachedFile.size);
+      document.getElementById('filePreview').classList.add('active');
+    }
+
+    function clearAttachedFile() {
+      attachedFile = null;
+      document.getElementById('filePreview').classList.remove('active');
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    }
+
+    // ====== Envío de mensajes ======
     async function sendTextMessage() {
       const input = document.getElementById('textInput');
       const text = input.value.trim();
-      if (!text || !conversationId) return;
+      if (!conversationId) return;
+      if (!text && !attachedFile) return;
       input.value = '';
-      addUserTextMessage(text);
-      await sendToBot(text);
+
+      // Pinta burbuja(s) en el chat
+      if (attachedFile) addUserFileMessage(attachedFile.name, attachedFile.size);
+      if (text) addUserTextMessage(text);
+
+      if (attachedFile) {
+        await sendActivityWithUpload(text, attachedFile);
+      } else {
+        await sendActivityTextOnly(text);
+      }
+      clearAttachedFile();
     }
 
+    // Envío sin adjunto: activity normal
+    async function sendActivityTextOnly(text) {
+      try {
+        const res = await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${dlToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'message',
+            from: { id: dlUserId, name: userName },
+            text: text || ''
+          })
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          addBotMessage(`Error enviando: ${res.status} ${err}`);
+          return;
+        }
+        setStatus('thinking', 'Procesando consulta...');
+        showThinking();
+      } catch (e) {
+        addBotMessage('Error enviando: ' + e.message);
+      }
+    }
+
+    // Envío con adjunto: usa /upload (multipart/form-data)
+    // Documentación: POST /v3/directline/conversations/{id}/upload?userId={userId}
+    async function sendActivityWithUpload(text, fileObj) {
+      try {
+        const form = new FormData();
+
+        // Parte 1: el activity con metadata (Content-Type application/vnd.microsoft.activity)
+        const activity = {
+          type: 'message',
+          from: { id: dlUserId, name: userName },
+          text: text || ''
+        };
+        const activityBlob = new Blob([JSON.stringify(activity)], {
+          type: 'application/vnd.microsoft.activity'
+        });
+        form.append('activity', activityBlob);
+
+        // Parte 2: el archivo binario
+        form.append('file', fileObj.file, fileObj.name);
+
+        const url = `${DIRECTLINE_BASE}/conversations/${conversationId}/upload?userId=${encodeURIComponent(dlUserId)}`;
+
+        // OJO: NO se pone Content-Type manualmente; el navegador lo añade con el boundary correcto.
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${dlToken}` },
+          body: form
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          addBotMessage(`Error subiendo archivo: ${res.status} ${err}`);
+          return;
+        }
+        setStatus('thinking', 'Procesando consulta...');
+        showThinking();
+      } catch (e) {
+        addBotMessage('Error subiendo archivo: ' + e.message);
+      }
+    }
+
+    // ====== Audio ======
     async function toggleRecording() {
       if (!conversationId) return;
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        stopRecording();
-      } else {
-        await startRecording();
-      }
+      if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+      else await startRecording();
     }
 
     async function startRecording() {
@@ -311,7 +444,6 @@
         mediaRecorder.addEventListener('dataavailable', e => {
           if (e.data.size > 0) audioChunks.push(e.data);
         });
-
         mediaRecorder.addEventListener('stop', async () => {
           const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
           recordingStream.getTracks().forEach(t => t.stop());
@@ -325,6 +457,7 @@
         document.getElementById('recIndicator').classList.add('active');
         document.getElementById('textInput').disabled = true;
         document.getElementById('sendBtn').disabled = true;
+        document.getElementById('attachBtn').disabled = true;
         recordTimer = setInterval(() => {
           const s = Math.floor((Date.now() - recordStart) / 1000);
           const mm = String(Math.floor(s / 60)).padStart(2, '0');
@@ -337,14 +470,13 @@
     }
 
     function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
+      if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
       clearInterval(recordTimer);
       document.getElementById('micBtn').classList.remove('recording');
       document.getElementById('recIndicator').classList.remove('active');
       document.getElementById('textInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
+      document.getElementById('attachBtn').disabled = false;
       document.getElementById('recTime').textContent = '00:00';
     }
 
@@ -361,7 +493,6 @@
           headers: { 'Authorization': `Bearer ${ssoToken}` },
           body: form
         });
-
         if (!res.ok) {
           transcriptEl.classList.remove('loading');
           transcriptEl.textContent = 'No se pudo transcribir el audio.';
@@ -374,7 +505,7 @@
         transcriptEl.textContent = text || '(no se detectó voz)';
 
         if (text) {
-          await sendToBot(text);
+          await sendActivityTextOnly(text);
         }
       } catch (e) {
         transcriptEl.classList.remove('loading');
@@ -382,29 +513,6 @@
       }
     }
 
-    async function sendToBot(text) {
-      try {
-        await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${dlToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'message',
-            from: { id: dlUserId, name: userName },
-            text: text
-          })
-        });
-        setStatus('thinking', 'Procesando consulta...');
-        showThinking();
-      } catch (e) {
-        addBotMessage('Error enviando: ' + e.message);
-      }
-    }
-
-    // Polling continuo: corre indefinidamente desde init() y enseña cualquier
-    // mensaje que llegue del bot, sin depender de que el usuario haya escrito antes.
     async function startContinuousPolling() {
       if (polling) return;
       polling = true;
@@ -417,11 +525,8 @@
             const data = await res.json();
             watermark = data.watermark;
             const botMsgs = (data.activities || []).filter(a =>
-              a.type === 'message' &&
-              a.from &&
-              a.from.id !== dlUserId &&
-              a.from.id !== userId &&
-              a.from.id !== 'user1'
+              a.type === 'message' && a.from &&
+              a.from.id !== dlUserId && a.from.id !== userId && a.from.id !== 'user1'
             );
             if (botMsgs.length > 0) {
               hideThinking();
@@ -429,9 +534,7 @@
               setStatus('ok', 'Conectado');
             }
           }
-        } catch (e) {
-          // ignora errores transitorios
-        }
+        } catch (e) {}
         await sleep(1500);
       }
     }
@@ -462,6 +565,29 @@
       chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
       return msg.querySelector('.audio-transcript');
     }
+    function addUserFileMessage(name, size) {
+      const chat = document.getElementById('chat');
+      const msg = document.createElement('div');
+      msg.className = 'msg user';
+      msg.innerHTML = `
+        <div class="msg-label">Tú</div>
+        <div class="msg-bubble file-bubble">
+          <div class="file-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <div class="file-info">
+            <div class="file-name"></div>
+            <div class="file-size"></div>
+          </div>
+        </div>
+      `;
+      msg.querySelector('.file-name').textContent = name;
+      msg.querySelector('.file-size').textContent = formatBytes(size);
+      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
+    }
     function addBotMessage(text) {
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
@@ -471,7 +597,6 @@
       chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
     }
     function showThinking() {
-      // Solo añade thinking si no hay ya uno
       if (document.getElementById('thinking')) return;
       const chat = document.getElementById('chat');
       const t = document.createElement('div');
