@@ -451,8 +451,17 @@ function renderFullAdaptiveCard(cardJson) {
     ac.onExecuteAction = (action) => {
       if (action instanceof AdaptiveCards.OpenUrlAction)
         window.open(action.url, "_blank", "noopener");
-      else if (action instanceof AdaptiveCards.SubmitAction)
-        sendCardSubmit(action.data || {});
+      else if (action instanceof AdaptiveCards.SubmitAction) {
+        const inputValues = ac.getAllInputs().reduce((acc, input) => {
+          acc[input.id] = input.value;
+          return acc;
+        }, {});
+      
+        sendCardSubmit({
+          ...(action.data || {}),
+          ...inputValues,
+        });
+      }
     };
     const rendered = ac.render();
     host.appendChild(rendered);

@@ -90,7 +90,7 @@ class InputRating extends AdaptiveCards.Input {
     return this._selectedValue > 0 ? String(this._selectedValue) : undefined;
   }
 
-  get isSet() {
+  isSet() {
     return this._selectedValue > 0;
   }
 
