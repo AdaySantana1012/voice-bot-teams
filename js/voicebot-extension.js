@@ -106,7 +106,10 @@ class InputRating extends AdaptiveCards.Input {
 }
 
 // Registrar el custom element
-AdaptiveCards.AdaptiveCard.elementTypeRegistry.registerType("Input.Rating", () => new InputRating());
+AdaptiveCards.GlobalRegistry.elements.register(
+  "Input.Rating",
+  InputRating
+);
 
 
 // ============ 2) Conectar markdown-it con adaptivecards ============
