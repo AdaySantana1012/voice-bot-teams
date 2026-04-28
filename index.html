@@ -1,781 +1,160 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Asistente de Siniestros</title>
-  <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
-  <script src="adaptativecards.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --orange: #FF8D30; --orange-soft: #FFE7D2; --orange-dark: #E5731A;
-      --black: #212425; --white: #FFFFFF; --cyan: #B7F0F0; --cyan-soft: #E5F8F8;
-      --yellow: #FED227; --bg: #FAFAFA; --surface: #FFFFFF; --border: #E8E8E8;
-      --text: #212425; --muted: #6B6F71; --recording: #E5333D;
-    }
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 16px; gap: 14px; }
-    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 70% 40% at 0% 0%, rgba(255, 141, 48, 0.06) 0%, transparent 50%), radial-gradient(ellipse 50% 50% at 100% 100%, rgba(183, 240, 240, 0.18) 0%, transparent 60%); pointer-events: none; }
-    .app { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; }
-    .header { display: flex; align-items: center; gap: 12px; padding: 4px 2px; }
-    .logo { width: 38px; height: 38px; background: var(--black); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .logo-mark { font-family: 'Inter', sans-serif; font-weight: 800; color: var(--orange); font-size: 22px; line-height: 1; letter-spacing: -0.02em; }
-    .header-text { display: flex; flex-direction: column; gap: 1px; }
-    .header h1 { font-size: 17px; font-weight: 700; color: var(--black); letter-spacing: -0.01em; line-height: 1.2; }
-    .header .subtitle { font-size: 12px; color: var(--muted); font-weight: 500; }
-    .status-bar { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); transition: all 0.3s; }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: all 0.3s; }
-    .status-bar.ok .status-dot { background: #1FB36C; box-shadow: 0 0 8px rgba(31, 179, 108, 0.5); }
-    .status-bar.ok { border-color: rgba(31, 179, 108, 0.3); color: var(--text); }
-    .status-bar.thinking .status-dot { background: var(--orange); animation: pulse 1s infinite; }
-    .status-bar.thinking { border-color: rgba(255, 141, 48, 0.3); }
-    .status-bar.error .status-dot { background: var(--recording); }
-    .status-bar.error { border-color: rgba(229, 51, 61, 0.3); color: var(--text); }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .chat { width: 100%; display: flex; flex-direction: column; gap: 12px; height: 380px; overflow-y: auto; padding: 4px 2px 4px 2px; }
-    .chat::-webkit-scrollbar { width: 4px; }
-    .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-    .chat::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-    .msg { display: flex; flex-direction: column; gap: 4px; animation: slide-in 0.3s ease; }
-    @keyframes slide-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    .msg.user { align-items: flex-end; }
-    .msg.bot { align-items: flex-start; }
-    .msg-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0 4px; }
-    .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; box-shadow: 0 1px 2px rgba(33, 36, 37, 0.04); }
-    .msg.user .msg-bubble { background: var(--orange); color: var(--white); border-bottom-right-radius: 4px; font-weight: 500; }
-    .msg.bot .msg-bubble { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
-    .thinking-bubble { display: flex; gap: 4px; align-items: center; padding: 12px 16px; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); animation: bounce 1.2s infinite; }
-    .dot:nth-child(2) { animation-delay: .2s; }
-    .dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-    .audio-bubble { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; min-width: 240px; background: var(--orange); color: var(--white); }
-    .audio-bubble audio { width: 100%; height: 32px; outline: none; }
-    .audio-bubble audio::-webkit-media-controls-panel { background: var(--white); }
-    .audio-transcript { font-size: 12px; line-height: 1.4; opacity: 0.95; font-style: italic; padding: 0 4px; color: var(--white); }
-    .audio-transcript.loading { opacity: 0.7; display: flex; align-items: center; gap: 6px; }
-    .audio-transcript.loading::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); animation: pulse 0.8s infinite; }
-    .file-bubble { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-width: 240px; background: var(--orange); color: var(--white); }
-    .file-icon { width: 36px; height: 36px; flex-shrink: 0; background: rgba(255, 255, 255, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-    .file-icon svg { width: 20px; height: 20px; }
-    .file-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .file-name { font-size: 13px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .file-size { font-size: 11px; opacity: 0.85; font-family: 'JetBrains Mono', monospace; }
-    .file-preview { display: none; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; animation: slide-in 0.2s ease; }
-    .file-preview.active { display: flex; }
-    .file-preview .file-icon { background: var(--orange-soft); color: var(--orange); }
-    .file-preview .file-name { color: var(--text); }
-    .file-preview .file-size { color: var(--muted); }
-    .file-preview-remove { background: transparent; border: none; cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: all 0.2s; }
-    .file-preview-remove:hover { background: rgba(229, 51, 61, 0.1); color: var(--recording); }
-    .file-preview-remove svg { width: 16px; height: 16px; }
-
-    /* === Suggested actions (botones de respuesta rápida) === */
-    .suggested-actions {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      max-width: 100%; padding: 0 2px;
-      animation: slide-in 0.3s ease 0.1s both;
-    }
-    .suggested-action {
-      background: var(--surface); border: 1.5px solid var(--orange);
-      color: var(--orange); border-radius: 18px;
-      padding: 7px 14px; font-family: 'Inter', sans-serif;
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: all 0.15s; white-space: nowrap;
-      max-width: 100%; overflow: hidden; text-overflow: ellipsis;
-    }
-    .suggested-action:hover { background: var(--orange-soft); }
-    .suggested-action:active { transform: scale(0.96); }
-    .suggested-action.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
-
-    /* === Card adaptativa simple (con botón OpenUrl) === */
-    .simple-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 14px; padding: 14px; max-width: 85%;
-      display: flex; flex-direction: column; gap: 10px;
-      box-shadow: 0 1px 2px rgba(33, 36, 37, 0.04);
-      border-bottom-left-radius: 4px;
-    }
-    .simple-card-title { font-size: 14px; font-weight: 700; color: var(--black); line-height: 1.3; }
-    .simple-card-text { font-size: 13px; color: var(--text); line-height: 1.5; }
-    .simple-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-    .simple-card-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: var(--black); color: var(--white);
-      border: none; border-radius: 8px; padding: 8px 14px;
-      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s;
-      text-decoration: none;
-    }
-    .simple-card-btn:hover { background: #000; }
-    .simple-card-btn:active { transform: scale(0.97); }
-    .simple-card-btn svg { width: 14px; height: 14px; }
-    .simple-card-btn.secondary { background: var(--surface); color: var(--orange); border: 1.5px solid var(--orange); }
-    .simple-card-btn.secondary:hover { background: var(--orange-soft); }
-
-    /* === Adaptive Card (renderer oficial) — overrides para casarlo con el branding === */
-    .adaptive-card-host {
-      max-width: 85%; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 14px; padding: 14px;
-      box-shadow: 0 1px 2px rgba(33, 36, 37, 0.04);
-      border-bottom-left-radius: 4px;
-      font-family: 'Inter', sans-serif !important;
-    }
-    .adaptive-card-host .ac-pushButton {
-      background: var(--orange) !important; color: var(--white) !important;
-      border: none !important; border-radius: 8px !important;
-      padding: 8px 14px !important; font-weight: 600 !important;
-      font-family: 'Inter', sans-serif !important;
-    }
-    .adaptive-card-host .ac-pushButton:hover { background: var(--orange-dark) !important; }
-    .adaptive-card-host .ac-input {
-      border: 1px solid var(--border) !important; border-radius: 8px !important;
-      padding: 8px 10px !important; font-family: 'Inter', sans-serif !important;
-    }
-    .adaptive-card-host .ac-input:focus {
-      border-color: var(--orange) !important;
-      box-shadow: 0 0 0 3px rgba(255, 141, 48, 0.12) !important;
-      outline: none !important;
-    }
-
-    .input-row { display: flex; gap: 8px; width: 100%; align-items: stretch; }
-    .input-wrap { flex: 1; position: relative; display: flex; align-items: center; }
-    .text-input { flex: 1; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 80px 12px 44px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-    .text-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255, 141, 48, 0.12); }
-    .text-input::placeholder { color: var(--muted); }
-    .text-input:disabled { opacity: 0.5; background: #F5F5F5; }
-    .input-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: transparent; border: none; border-radius: 8px; color: var(--orange); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-    .input-btn:hover { background: var(--orange-soft); }
-    .input-btn:active { transform: translateY(-50%) scale(0.92); }
-    .input-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .input-btn svg { width: 18px; height: 18px; }
-    .attach-btn { left: 6px; }
-    .mic-btn { right: 6px; }
-    .mic-btn.recording { background: var(--recording); color: var(--white); animation: rec-pulse 1.2s infinite; }
-    @keyframes rec-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(229, 51, 61, 0.5); } 50% { box-shadow: 0 0 0 8px rgba(229, 51, 61, 0); } }
-    .send-btn { background: var(--black); color: var(--white); border: none; border-radius: 10px; padding: 0 18px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; letter-spacing: -0.01em; }
-    .send-btn:hover { background: #000; }
-    .send-btn:active { transform: scale(0.96); }
-    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .rec-indicator { display: none; align-items: center; gap: 8px; background: var(--surface); border: 1px solid rgba(229, 51, 61, 0.25); border-radius: 10px; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--recording); }
-    .rec-indicator.active { display: flex; }
-    .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--recording); animation: pulse 1s infinite; }
-    .rec-indicator span.hint { color: var(--muted); margin-left: auto; font-family: 'Inter', sans-serif; font-size: 11px; }
-    .debug { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.7; word-break: break-all; }
-    .debug span { color: var(--text); }
-    .debug-toggle { cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; font-family: 'Inter', sans-serif; font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .debug-content { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-    .debug.open .debug-content { display: block; }
-    .debug-toggle::after { content: '+'; font-size: 14px; line-height: 1; }
-    .debug.open .debug-toggle::after { content: '−'; }
-  </style>
-</head>
-<body>
-  <div class="app">
-    <div class="header">
-      <div class="logo"><span class="logo-mark">B</span></div>
-      <div class="header-text">
-        <h1>Asistente de Siniestros</h1>
-        <span class="subtitle">Bankinter</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Asistente de Siniestros</title>
+    <script src="https://res.cdn.office.net/teams-js/2.22.0/js/MicrosoftTeams.min.js"></script>
+    <script src="lib/adaptativecards.min.js"></script>
+    <script src="lib/markdown-it.min.js"></script>
+    <script src="js/voicebot-extensions.js"></script>
+    <script src="js/app.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles/style.css">
+  </head>
+  <body>
+    <div class="app">
+      <div class="header">
+        <div class="logo"><span class="logo-mark">B</span></div>
+        <div class="header-text">
+          <h1>Asistente de Siniestros</h1>
+          <span class="subtitle">Bankinter</span>
+        </div>
       </div>
-    </div>
-
-    <div class="status-bar" id="statusBar">
-      <div class="status-dot"></div>
-      <span id="statusText">Iniciando...</span>
-    </div>
-
-    <div class="chat" id="chat"></div>
-
-    <div class="rec-indicator" id="recIndicator">
-      <div class="rec-dot"></div>
-      <span id="recTime">00:00</span>
-      <span class="hint">Pulsa el micro para enviar</span>
-    </div>
-
-    <div class="file-preview" id="filePreview">
-      <div class="file-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
+      <div class="status-bar" id="statusBar">
+        <div class="status-dot"></div>
+        <span id="statusText">Iniciando...</span>
       </div>
-      <div class="file-info">
-        <div class="file-name" id="filePreviewName">documento.pdf</div>
-        <div class="file-size" id="filePreviewSize">0 KB</div>
+      <div class="chat" id="chat"></div>
+      <div class="rec-indicator" id="recIndicator">
+        <div class="rec-dot"></div>
+        <span id="recTime">00:00</span
+        ><span class="hint">Pulsa el micro para enviar</span>
       </div>
-      <button class="file-preview-remove" id="fileRemoveBtn" onclick="clearAttachedFile()" aria-label="Quitar archivo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-
-    <div class="input-row">
-      <div class="input-wrap">
-        <button class="input-btn attach-btn" id="attachBtn" onclick="document.getElementById('fileInput').click()" disabled aria-label="Adjuntar PDF">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+      <div class="file-preview" id="filePreview">
+        <div class="file-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+            />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+        </div>
+        <div class="file-info">
+          <div class="file-name" id="filePreviewName">documento.pdf</div>
+          <div class="file-size" id="filePreviewSize">0 KB</div>
+        </div>
+        <button
+          class="file-preview-remove"
+          onclick="clearAttachedFile()"
+          aria-label="Quitar archivo"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <input class="text-input" id="textInput" type="text" placeholder="Escribe tu consulta..." onkeydown="if(event.key==='Enter') sendTextMessage()" />
-        <button class="input-btn mic-btn" id="micBtn" onclick="toggleRecording()" disabled aria-label="Grabar audio">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
+      </div>
+      <div class="input-row">
+        <div class="input-wrap">
+          <button
+            class="input-btn attach-btn"
+            id="attachBtn"
+            onclick="document.getElementById('fileInput').click()"
+            disabled
+            aria-label="Adjuntar PDF"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+              />
+            </svg>
+          </button>
+          <input
+            class="text-input"
+            id="textInput"
+            type="text"
+            placeholder="Escribe tu consulta..."
+            onkeydown="if(event.key==='Enter') sendTextMessage()"
+          />
+          <button
+            class="input-btn mic-btn"
+            id="micBtn"
+            onclick="toggleRecording()"
+            disabled
+            aria-label="Grabar audio"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
+          <input
+            type="file"
+            id="fileInput"
+            accept="application/pdf"
+            style="display: none"
+            onchange="onFilePicked(event)"
+          />
+        </div>
+        <button
+          class="send-btn"
+          id="sendBtn"
+          onclick="sendTextMessage()"
+          disabled
+        >
+          Enviar
         </button>
-        <input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="onFilePicked(event)" />
       </div>
-      <button class="send-btn" id="sendBtn" onclick="sendTextMessage()" disabled>Enviar</button>
-    </div>
-
-    <div class="debug" id="debugBox">
-      <div class="debug-toggle" onclick="document.getElementById('debugBox').classList.toggle('open')">
-        Debug
-      </div>
-      <div class="debug-content">
-        sso: <span id="dbSSO">-</span><br>
-        user: <span id="dbUser">-</span><br>
-        dlUserId: <span id="dbDlUser">-</span><br>
-        conversationId: <span id="dbConv">-</span><br>
-        dlToken: <span id="dbToken">-</span>
+      <div class="debug" id="debugBox">
+        <div
+          class="debug-toggle"
+          onclick="document.getElementById('debugBox').classList.toggle('open')"
+        >
+          Debug
+        </div>
+        <div class="debug-content">
+          sso: <span id="dbSSO">-</span><br />user: <span id="dbUser">-</span
+          ><br />dlUserId: <span id="dbDlUser">-</span><br />conversationId:
+          <span id="dbConv">-</span><br />dlToken: <span id="dbToken">-</span>
+        </div>
       </div>
     </div>
-  </div>
-
-  <script>
-    const APP_ID = '4a693834-2aa8-478e-a086-98d7de9ade7e';
-    const APP_DOMAIN = 'voicebot.compracamper.com';
-    const RESOURCE = `api://${APP_DOMAIN}/${APP_ID}`;
-    const PROXY_BASE = 'https://voicebot-proxy.azurewebsites.net/api';
-    const TOKEN_URL = `${PROXY_BASE}/token`;
-    const TRANSCRIBE_URL = `${PROXY_BASE}/transcribe`;
-    const DIRECTLINE_BASE = 'https://europe.directline.botframework.com/v3/directline';
-    const MAX_FILE_BYTES = 4 * 1024 * 1024;
-
-    let ssoToken = null, dlToken = null, conversationId = null;
-    let watermark = null, userId = null, dlUserId = null, userName = 'Usuario';
-    let polling = false;
-
-    let mediaRecorder = null, audioChunks = [], recordingStream = null;
-    let recordStart = 0, recordTimer = null;
-    let attachedFile = null;
-
-    async function init() {
-      try {
-        await microsoftTeams.app.initialize();
-        setStatus('thinking', 'Obteniendo credenciales...');
-
-        ssoToken = await new Promise((resolve, reject) => {
-          microsoftTeams.authentication.getAuthToken({
-            resources: [RESOURCE],
-            successCallback: resolve,
-            failureCallback: (err) => reject(new Error(typeof err === 'string' ? err : JSON.stringify(err)))
-          });
-        });
-        document.getElementById('dbSSO').textContent = ssoToken.substring(0, 20) + '...';
-
-        try {
-          const payload = JSON.parse(atob(ssoToken.split('.')[1]));
-          userId = payload.oid || payload.sub;
-          dlUserId = `dl_${userId}`;
-          userName = payload.name || payload.preferred_username || 'Usuario';
-          document.getElementById('dbUser').textContent = (payload.preferred_username || payload.upn || userId || 'unknown');
-          document.getElementById('dbDlUser').textContent = dlUserId;
-        } catch (_) {}
-
-        setStatus('thinking', 'Conectando con el asistente...');
-        const tokenRes = await fetch(TOKEN_URL, { method: 'GET', headers: { 'Authorization': `Bearer ${ssoToken}` } });
-        if (!tokenRes.ok) {
-          const err = await tokenRes.text();
-          setStatus('error', `Error de conexión (${tokenRes.status})`);
-          addBotMessage(`No se pudo establecer la conexión. ${err}`);
-          return;
-        }
-        const tokenData = await tokenRes.json();
-        dlToken = tokenData.token;
-        document.getElementById('dbToken').textContent = dlToken.substring(0, 20) + '...';
-
-        const convRes = await fetch(`${DIRECTLINE_BASE}/conversations`, { method: 'POST', headers: { 'Authorization': `Bearer ${dlToken}` } });
-        if (!convRes.ok) { const err = await convRes.text(); setStatus('error', `Error iniciando conversación`); addBotMessage(err); return; }
-        const convData = await convRes.json();
-        conversationId = convData.conversationId;
-        document.getElementById('dbConv').textContent = conversationId;
-
-        setStatus('ok', 'Conectado');
-        document.getElementById('sendBtn').disabled = false;
-        document.getElementById('micBtn').disabled = false;
-        document.getElementById('attachBtn').disabled = false;
-
-        startContinuousPolling();
-        await sendConversationUpdate();
-
-      } catch (e) {
-        setStatus('error', 'Error de inicialización');
-        addBotMessage(e.message);
-      }
-    }
-
-    async function sendConversationUpdate() {
-      const headers = { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' };
-      const url = `${DIRECTLINE_BASE}/conversations/${conversationId}/activities`;
-      try {
-        await fetch(url, { method: 'POST', headers, body: JSON.stringify({ type: 'conversationUpdate', from: { id: dlUserId, name: userName }, membersAdded: [{ id: dlUserId, name: userName }] }) });
-      } catch (e) { console.warn('conversationUpdate falló:', e); }
-      try {
-        await fetch(url, { method: 'POST', headers, body: JSON.stringify({ type: 'event', name: 'startConversation', from: { id: dlUserId, name: userName } }) });
-      } catch (e) { console.warn('event startConversation falló:', e); }
-    }
-
-    function onFilePicked(event) {
-      const file = event.target.files && event.target.files[0];
-      event.target.value = '';
-      if (!file) return;
-      if (file.type !== 'application/pdf') { addBotMessage('Solo se admiten archivos PDF.'); return; }
-      if (file.size > MAX_FILE_BYTES) { addBotMessage(`El archivo es demasiado grande. Máximo ${(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)}MB.`); return; }
-      attachedFile = { file, name: file.name, size: file.size, mimeType: file.type };
-      showFilePreview();
-    }
-    function showFilePreview() {
-      if (!attachedFile) return;
-      document.getElementById('filePreviewName').textContent = attachedFile.name;
-      document.getElementById('filePreviewSize').textContent = formatBytes(attachedFile.size);
-      document.getElementById('filePreview').classList.add('active');
-    }
-    function clearAttachedFile() { attachedFile = null; document.getElementById('filePreview').classList.remove('active'); }
-    function formatBytes(bytes) {
-      if (bytes < 1024) return bytes + ' B';
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / 1024 / 1024).toFixed(2) + ' MB';
-    }
-
-    async function sendTextMessage() {
-      const input = document.getElementById('textInput');
-      const text = input.value.trim();
-      if (!conversationId) return;
-      if (!text && !attachedFile) return;
-      input.value = '';
-      if (attachedFile) addUserFileMessage(attachedFile.name, attachedFile.size);
-      if (text) addUserTextMessage(text);
-      if (attachedFile) await sendActivityWithUpload(text, attachedFile);
-      else await sendActivityTextOnly(text);
-      clearAttachedFile();
-    }
-
-    async function sendActivityTextOnly(text) {
-      try {
-        const res = await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'message', from: { id: dlUserId, name: userName }, text: text || '' })
-        });
-        if (!res.ok) { const err = await res.text(); addBotMessage(`Error enviando: ${res.status} ${err}`); return; }
-        setStatus('thinking', 'Procesando consulta...');
-        showThinking();
-        // Cuando el usuario interactúa, deshabilitamos las suggested actions del último mensaje
-        disableLastSuggestedActions();
-      } catch (e) {
-        addBotMessage('Error enviando: ' + e.message);
-      }
-    }
-
-    async function sendActivityWithUpload(text, fileObj) {
-      try {
-        const form = new FormData();
-        const activity = { type: 'message', from: { id: dlUserId, name: userName }, text: text || '' };
-        const activityBlob = new Blob([JSON.stringify(activity)], { type: 'application/vnd.microsoft.activity' });
-        form.append('activity', activityBlob);
-        form.append('file', fileObj.file, fileObj.name);
-        const url = `${DIRECTLINE_BASE}/conversations/${conversationId}/upload?userId=${encodeURIComponent(dlUserId)}`;
-        const res = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${dlToken}` }, body: form });
-        if (!res.ok) { const err = await res.text(); addBotMessage(`Error subiendo archivo: ${res.status} ${err}`); return; }
-        setStatus('thinking', 'Procesando consulta...');
-        showThinking();
-        disableLastSuggestedActions();
-      } catch (e) {
-        addBotMessage('Error subiendo archivo: ' + e.message);
-      }
-    }
-
-    // Acción del usuario (vía suggested action o card button) que envía un texto
-    async function sendActionAsUser(displayText, valueToSend) {
-      addUserTextMessage(displayText);
-      try {
-        const res = await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'message',
-            from: { id: dlUserId, name: userName },
-            text: valueToSend || displayText
-          })
-        });
-        if (!res.ok) { const err = await res.text(); addBotMessage(`Error enviando: ${res.status} ${err}`); return; }
-        setStatus('thinking', 'Procesando consulta...');
-        showThinking();
-        disableLastSuggestedActions();
-      } catch (e) {
-        addBotMessage('Error enviando: ' + e.message);
-      }
-    }
-
-    // Acción Submit de Adaptive Card: envía la data del input al bot
-    async function sendCardSubmit(data) {
-      try {
-        const res = await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${dlToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'message',
-            from: { id: dlUserId, name: userName },
-            value: data,
-            text: '' // a veces se manda un placeholder textual
-          })
-        });
-        if (!res.ok) { const err = await res.text(); addBotMessage(`Error enviando: ${res.status} ${err}`); return; }
-        setStatus('thinking', 'Procesando consulta...');
-        showThinking();
-      } catch (e) {
-        addBotMessage('Error enviando: ' + e.message);
-      }
-    }
-
-    async function toggleRecording() { if (!conversationId) return; if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording(); else await startRecording(); }
-    async function startRecording() {
-      try {
-        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
-        const mimeType = candidates.find(t => MediaRecorder.isTypeSupported(t)) || '';
-        mediaRecorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
-        audioChunks = [];
-        mediaRecorder.addEventListener('dataavailable', e => { if (e.data.size > 0) audioChunks.push(e.data); });
-        mediaRecorder.addEventListener('stop', async () => {
-          const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-          recordingStream.getTracks().forEach(t => t.stop());
-          recordingStream = null;
-          await handleAudioBlob(blob);
-        });
-        mediaRecorder.start();
-        recordStart = Date.now();
-        document.getElementById('micBtn').classList.add('recording');
-        document.getElementById('recIndicator').classList.add('active');
-        document.getElementById('textInput').disabled = true;
-        document.getElementById('sendBtn').disabled = true;
-        document.getElementById('attachBtn').disabled = true;
-        recordTimer = setInterval(() => {
-          const s = Math.floor((Date.now() - recordStart) / 1000);
-          const mm = String(Math.floor(s / 60)).padStart(2, '0');
-          const ss = String(s % 60).padStart(2, '0');
-          document.getElementById('recTime').textContent = `${mm}:${ss}`;
-        }, 250);
-      } catch (e) {
-        addBotMessage('No se pudo acceder al micrófono: ' + e.message);
-      }
-    }
-    function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-      clearInterval(recordTimer);
-      document.getElementById('micBtn').classList.remove('recording');
-      document.getElementById('recIndicator').classList.remove('active');
-      document.getElementById('textInput').disabled = false;
-      document.getElementById('sendBtn').disabled = false;
-      document.getElementById('attachBtn').disabled = false;
-      document.getElementById('recTime').textContent = '00:00';
-    }
-    async function handleAudioBlob(blob) {
-      const audioUrl = URL.createObjectURL(blob);
-      const transcriptEl = addUserAudioMessage(audioUrl);
-      try {
-        const form = new FormData();
-        form.append('audio', blob, 'recording.webm');
-        const res = await fetch(TRANSCRIBE_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${ssoToken}` }, body: form });
-        if (!res.ok) { transcriptEl.classList.remove('loading'); transcriptEl.textContent = 'No se pudo transcribir el audio.'; return; }
-        const data = await res.json();
-        const text = (data.text || '').trim();
-        transcriptEl.classList.remove('loading');
-        transcriptEl.textContent = text || '(no se detectó voz)';
-        if (text) await sendActivityTextOnly(text);
-      } catch (e) {
-        transcriptEl.classList.remove('loading');
-        transcriptEl.textContent = 'Error: ' + e.message;
-      }
-    }
-
-    async function startContinuousPolling() {
-      if (polling) return;
-      polling = true;
-      while (polling) {
-        try {
-          const url = `${DIRECTLINE_BASE}/conversations/${conversationId}/activities` + (watermark ? `?watermark=${watermark}` : '');
-          const res = await fetch(url, { headers: { 'Authorization': `Bearer ${dlToken}` } });
-          if (res.ok) {
-            const data = await res.json();
-            watermark = data.watermark;
-            const botActs = (data.activities || []).filter(a =>
-              a.type === 'message' && a.from && a.from.id !== dlUserId && a.from.id !== userId && a.from.id !== 'user1'
-            );
-            if (botActs.length > 0) {
-              hideThinking();
-              botActs.forEach(act => renderBotActivity(act));
-              setStatus('ok', 'Conectado');
-            }
-          }
-        } catch (e) {}
-        await sleep(1500);
-      }
-    }
-
-    // ====== RENDER DE ACTIVITIES DEL BOT ======
-    // Decide qué hacer con cada activity: texto, attachments, suggested actions
-    function renderBotActivity(act) {
-      // 1) Texto (si hay)
-      if (act.text && act.text.trim()) {
-        addBotMessage(act.text);
-      }
-
-      // 2) Attachments (cards, imágenes, etc.)
-      if (Array.isArray(act.attachments)) {
-        act.attachments.forEach(att => renderAttachment(att));
-      }
-
-      // 3) Suggested actions (botones rápidos) — siempre al final
-      if (act.suggestedActions && Array.isArray(act.suggestedActions.actions) && act.suggestedActions.actions.length > 0) {
-        renderSuggestedActions(act.suggestedActions.actions);
-      }
-    }
-
-    function renderAttachment(att) {
-      const ct = att.contentType || '';
-      if (ct === 'application/vnd.microsoft.card.adaptive') {
-        const card = att.content;
-        if (isSimpleCard(card)) {
-          renderSimpleAdaptiveCard(card);
-        } else {
-          renderFullAdaptiveCard(card);
-        }
-        return;
-      }
-      if (ct === 'application/vnd.microsoft.card.hero') {
-        renderHeroCard(att.content);
-        return;
-      }
-      // Cualquier otro tipo de attachment lo ignoramos por ahora
-    }
-
-    // ¿Es una card "simple"? Solo TextBlocks + acciones OpenUrl/Submit sin inputs
-    function isSimpleCard(card) {
-      if (!card || !Array.isArray(card.body)) return true;
-      const hasInputs = card.body.some(el => (el.type || '').startsWith('Input.'));
-      return !hasInputs;
-    }
-
-    // Render manual de adaptive cards simples (texto + botones OpenUrl)
-    function renderSimpleAdaptiveCard(card) {
-      const chat = document.getElementById('chat');
-      const wrap = document.createElement('div');
-      wrap.className = 'msg bot';
-
-      const labelEl = document.createElement('div');
-      labelEl.className = 'msg-label';
-      labelEl.textContent = 'Asistente';
-      wrap.appendChild(labelEl);
-
-      const cardEl = document.createElement('div');
-      cardEl.className = 'simple-card';
-
-      // Body: extrae solo TextBlocks
-      if (Array.isArray(card.body)) {
-        card.body.forEach((el, idx) => {
-          if (el.type === 'TextBlock' && el.text) {
-            const p = document.createElement('div');
-            const isTitle = el.weight === 'Bolder' || el.size === 'Large' || el.size === 'ExtraLarge' || idx === 0;
-            p.className = isTitle ? 'simple-card-title' : 'simple-card-text';
-            p.textContent = el.text;
-            cardEl.appendChild(p);
-          }
-        });
-      }
-
-      // Acciones
-      if (Array.isArray(card.actions) && card.actions.length > 0) {
-        const actionsRow = document.createElement('div');
-        actionsRow.className = 'simple-card-actions';
-        card.actions.forEach((action, idx) => {
-          if (action.type === 'Action.OpenUrl' && action.url) {
-            const a = document.createElement('a');
-            a.className = 'simple-card-btn' + (idx > 0 ? ' secondary' : '');
-            a.href = action.url;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            a.innerHTML = `
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              <span></span>
-            `;
-            a.querySelector('span').textContent = action.title || 'Abrir';
-            actionsRow.appendChild(a);
-          } else if (action.type === 'Action.Submit') {
-            const btn = document.createElement('button');
-            btn.className = 'simple-card-btn' + (idx > 0 ? ' secondary' : '');
-            btn.textContent = action.title || 'Enviar';
-            btn.onclick = () => sendCardSubmit(action.data || {});
-            actionsRow.appendChild(btn);
-          }
-        });
-        cardEl.appendChild(actionsRow);
-      }
-
-      wrap.appendChild(cardEl);
-      chat.appendChild(wrap);
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    // Render con la librería oficial para cards complejas (rating, formularios, etc.)
-    function renderFullAdaptiveCard(cardJson) {
-      const chat = document.getElementById('chat');
-      const wrap = document.createElement('div');
-      wrap.className = 'msg bot';
-
-      const labelEl = document.createElement('div');
-      labelEl.className = 'msg-label';
-      labelEl.textContent = 'Asistente';
-      wrap.appendChild(labelEl);
-
-      const host = document.createElement('div');
-      host.className = 'adaptive-card-host';
-
-      try {
-        const adaptiveCard = new AdaptiveCards.AdaptiveCard();
-        adaptiveCard.parse(cardJson);
-        adaptiveCard.onExecuteAction = (action) => {
-          if (action instanceof AdaptiveCards.OpenUrlAction) {
-            window.open(action.url, '_blank', 'noopener');
-          } else if (action instanceof AdaptiveCards.SubmitAction) {
-            const data = action.data || {};
-            sendCardSubmit(data);
-          }
-        };
-        const rendered = adaptiveCard.render();
-        host.appendChild(rendered);
-      } catch (e) {
-        host.textContent = 'No se pudo mostrar la tarjeta.';
-        console.error('Adaptive card render error:', e);
-      }
-
-      wrap.appendChild(host);
-      chat.appendChild(wrap);
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    // Hero cards (formato más viejo, también lo soporta Copilot a veces)
-    function renderHeroCard(content) {
-      // Las tratamos como simples adaptativas: convertimos al formato más cercano
-      const fakeAdaptive = { body: [], actions: content.buttons || [] };
-      if (content.title) fakeAdaptive.body.push({ type: 'TextBlock', text: content.title, weight: 'Bolder', size: 'Medium' });
-      if (content.subtitle) fakeAdaptive.body.push({ type: 'TextBlock', text: content.subtitle });
-      if (content.text) fakeAdaptive.body.push({ type: 'TextBlock', text: content.text });
-      // Mapear botones de hero card al formato OpenUrl
-      fakeAdaptive.actions = (content.buttons || []).map(b => {
-        if (b.type === 'openUrl') return { type: 'Action.OpenUrl', title: b.title, url: b.value };
-        return { type: 'Action.Submit', title: b.title, data: { __action: b.value } };
-      });
-      renderSimpleAdaptiveCard(fakeAdaptive);
-    }
-
-    // Suggested actions: fila de chips bajo el último mensaje
-    function renderSuggestedActions(actions) {
-      const chat = document.getElementById('chat');
-      const wrap = document.createElement('div');
-      wrap.className = 'msg bot suggested-actions-wrap';
-
-      const row = document.createElement('div');
-      row.className = 'suggested-actions';
-
-      actions.forEach(a => {
-        const btn = document.createElement('button');
-        btn.className = 'suggested-action';
-        btn.textContent = a.title || a.value || '...';
-        btn.onclick = () => {
-          // displayText = a.title (lo que se muestra como mensaje del usuario)
-          // valueToSend = a.value si es texto, o si es object (imBack), usa value
-          const displayText = a.title || String(a.value);
-          const valueToSend = (a.type === 'imBack' || a.type === 'messageBack' || !a.type)
-            ? (a.value || a.title)
-            : (a.title || a.value);
-          sendActionAsUser(displayText, valueToSend);
-        };
-        row.appendChild(btn);
-      });
-
-      wrap.appendChild(row);
-      chat.appendChild(wrap);
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    // Cuando el usuario hace algo (escribir, pulsar otro botón), las suggested actions previas dejan de funcionar
-    function disableLastSuggestedActions() {
-      const all = document.querySelectorAll('.suggested-actions .suggested-action');
-      all.forEach(b => b.classList.add('disabled'));
-    }
-
-    function setStatus(type, text) {
-      document.getElementById('statusBar').className = 'status-bar ' + type;
-      document.getElementById('statusText').textContent = text;
-    }
-    function addUserTextMessage(text) {
-      const chat = document.getElementById('chat');
-      const msg = document.createElement('div');
-      msg.className = 'msg user';
-      msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble"></div>`;
-      msg.querySelector('.msg-bubble').textContent = text;
-      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
-    }
-    function addUserAudioMessage(audioUrl) {
-      const chat = document.getElementById('chat');
-      const msg = document.createElement('div');
-      msg.className = 'msg user';
-      msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble audio-bubble"><audio controls src="${audioUrl}"></audio><div class="audio-transcript loading">Transcribiendo...</div></div>`;
-      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
-      return msg.querySelector('.audio-transcript');
-    }
-    function addUserFileMessage(name, size) {
-      const chat = document.getElementById('chat');
-      const msg = document.createElement('div');
-      msg.className = 'msg user';
-      msg.innerHTML = `<div class="msg-label">Tú</div><div class="msg-bubble file-bubble"><div class="file-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="file-info"><div class="file-name"></div><div class="file-size"></div></div></div>`;
-      msg.querySelector('.file-name').textContent = name;
-      msg.querySelector('.file-size').textContent = formatBytes(size);
-      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
-    }
-    function addBotMessage(text) {
-      const chat = document.getElementById('chat');
-      const msg = document.createElement('div');
-      msg.className = 'msg bot';
-      msg.innerHTML = `<div class="msg-label">Asistente</div><div class="msg-bubble"></div>`;
-      msg.querySelector('.msg-bubble').textContent = text || '...';
-      chat.appendChild(msg); chat.scrollTop = chat.scrollHeight;
-    }
-    function showThinking() {
-      if (document.getElementById('thinking')) return;
-      const chat = document.getElementById('chat');
-      const t = document.createElement('div');
-      t.className = 'msg bot'; t.id = 'thinking';
-      t.innerHTML = `<div class="msg-label">Asistente</div><div class="msg-bubble thinking-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
-      chat.appendChild(t); chat.scrollTop = chat.scrollHeight;
-    }
-    function hideThinking() { const t = document.getElementById('thinking'); if (t) t.remove(); }
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    init();
-  </script>
-</body>
+  </body>
 </html>
