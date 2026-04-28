@@ -414,16 +414,41 @@ async function startContinuousPolling() {
 }
 
 function renderBotActivity(act) {
+  if (tryHandleOAuthCard(act)) {
+    return;
+  }
+
   if (act.text && act.text.trim()) addBotMessage(act.text);
-  if (Array.isArray(act.attachments))
+
+  if (Array.isArray(act.attachments)) {
     act.attachments.forEach((att) => renderAttachment(att));
+  }
+
   if (
     act.suggestedActions &&
     Array.isArray(act.suggestedActions.actions) &&
     act.suggestedActions.actions.length > 0
-  )
+  ) {
     renderSuggestedActions(act.suggestedActions.actions);
+  }
 }
+
+function tryHandleOAuthCard(act) {
+  const oauthAttachment = act.attachments?.find(
+    (att) => att.contentType === "application/vnd.microsoft.card.oauth"
+  );
+
+  const tokenExchangeResource =
+    oauthAttachment?.content?.tokenExchangeResource;
+
+  if (!tokenExchangeResource) {
+    return false;
+  }
+
+  sendTokenExchange(tokenExchangeResource);
+  return true;
+}
+
 function renderAttachment(att) {
   const ct = att.contentType || "";
   if (ct === "application/vnd.microsoft.card.adaptive") {
@@ -435,6 +460,32 @@ function renderAttachment(att) {
     return;
   }
 }
+
+async function sendTokenExchange(tokenExchangeResource) {
+  const response = await fetch(
+    `${DIRECTLINE_BASE}/conversations/${conversationId}/activities`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${dlToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "invoke",
+        name: "signin/tokenExchange",
+        from: { id: dlUserId, name: userName },
+        value: {
+          id: tokenExchangeResource.id,
+          connectionName: tokenExchangeResource.connectionName,
+          token: ssoToken,
+        },
+      }),
+    }
+  );
+
+  console.log("Token exchange status:", response.status);
+}
+
 function renderFullAdaptiveCard(cardJson) {
   const chat = document.getElementById("chat");
   const wrap = document.createElement("div");
