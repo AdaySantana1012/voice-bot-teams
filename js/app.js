@@ -278,26 +278,24 @@ async function sendActionAsUser(display, value) {
 
 async function sendCardSubmit(data) {
   try {
-    await fetch(
-      `${DIRECTLINE_BASE}/conversations/${conversationId}/activities`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${dlToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "message",
-          from: { id: dlUserId, name: userName },
-          value: data,
-          text: "",
-        }),
-      }
-    );
-    setStatus("thinking", "Procesando...");
+    const res = await fetch(`${DIRECTLINE_BASE}/conversations/${conversationId}/activities`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${dlToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        type: 'message',
+        from: { id: dlUserId, name: userName },
+        text: data['rating'] || data['id-rating'] || 'feedback',
+        value: data
+      })
+    });
+    if (!res.ok) { addBotMessage('Error enviando valoración.'); return; }
+    setStatus('thinking', 'Procesando...');
     showThinking();
   } catch (e) {
-    addBotMessage("Error: " + e.message);
+    addBotMessage('Error: ' + e.message);
   }
 }
 
